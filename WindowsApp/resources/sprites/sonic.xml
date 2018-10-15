@@ -1,0 +1,19 @@
+
+<SpriteAnimation>
+
+	<Frames>
+		<Frame positionX="0" positionY="0.77" width="0.1" height="0.11" description="Posicao(1,1)" />
+		<Frame positionX="0.1" positionY="0.77" width="0.1" height="0.11" />
+		<Frame positionX="0.22" positionY="0.77" width="0.12" height="0.11" />
+		<Frame positionX="0.34" positionY="0.77" width="0.11" height="0.11" />
+		<Frame positionX="0.45" positionY="0.77" width="0.10" height="0.11" />
+		<Frame positionX="0.55" positionY="0.77" width="0.09" height="0.11" />
+		<Frame positionX="0.65" positionY="0.77" width="0.09" height="0.11" />
+		<Frame positionX="0.74" positionY="0.77" width="0.09" height="0.11" />
+	</Frames>
+	
+	<Animations>
+		<Animation name="walking" indexes="3,4,5,6" />
+	</Animations>
+
+</SpriteAnimation>

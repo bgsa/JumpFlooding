@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="AndroidDevice.cpp" />
+    <ClCompile Include="FileManagerAndroid.cpp" />
+    <ClCompile Include="DisplayDeviceAndroid.cpp" />
+    <ClCompile Include="TouchInputDeviceAndroid.cpp" />
+    <ClCompile Include="FileAndroid.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AndroidDevice.h" />
+    <ClInclude Include="FileManagerAndroid.h" />
+    <ClInclude Include="DisplayDeviceAndroid.h" />
+    <ClInclude Include="TouchInputDeviceAndroid.h" />
+    <ClInclude Include="FileAndroid.h" />
+  </ItemGroup>
+</Project>

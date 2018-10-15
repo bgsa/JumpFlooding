@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{9598e2db-9016-42e6-9ecf-fa30c1988e8b}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)BinaryTree.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BinaryTreeNode.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)Timer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)BinaryTree.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)BinaryTreeNode.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ColorRGB.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ColorRGBA.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Factory.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)IEquatable.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)IFile.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)IFileManager.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)InputDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)ISubSystem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)KeyboardInputDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)KeyboardInputDeviceHandler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Object.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)PointerInputDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)PointerInputDeviceHandler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)StringHelper.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)Timer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)TouchInputDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)TouchInputDeviceHandler.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)WindowInputDevice.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)WindowInputDeviceHandler.h" />
+  </ItemGroup>
+</Project>

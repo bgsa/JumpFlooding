@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AndroidDevice.cpp" />
+    <ClCompile Include="DisplayDeviceAndroid.cpp" />
+    <ClCompile Include="FileAndroid.cpp" />
+    <ClCompile Include="FileManagerAndroid.cpp" />
+    <ClCompile Include="TouchInputDeviceAndroid.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AndroidDevice.h" />
+    <ClInclude Include="DisplayDeviceAndroid.h" />
+    <ClInclude Include="FileAndroid.h" />
+    <ClInclude Include="FileManagerAndroid.h" />
+    <ClInclude Include="TouchInputDeviceAndroid.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{14ee7267-e8cc-425c-99d2-9a8c3a442e07}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>PixelEffect</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-24</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-24</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared">
+    <Import Project="..\PixelEffect.Shared\PixelEffect.Shared.vcxitems" Label="Shared" />
+    <Import Project="..\PixelEffect.UI\PixelEffect.UI.vcxitems" Label="Shared" />
+    <Import Project="..\PixelEffect.Framework\PixelEffect.Framework.vcxitems" Label="Shared" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <IncludePath>..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <IncludePath>..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>-D PLATFORM=0 %(AdditionalOptions)</AdditionalOptions>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <PreprocessorDefinitions>DEBUG;ANDROID;OPENGLES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\..\..\include;%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <CLanguageStandard>c11</CLanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>..\..\lib\android\armeabi-v7a;%(AdditionalLibraryDirectories);$(ToolchainPrebuiltPath)\lib\gcc\$(ToolchainName)\$(ToolchainFullVersionName)\$(PlatformShortName);$(StlLibraryPath)</AdditionalLibraryDirectories>
+      <AdditionalOptions>-lm -lGLESv3 -lEGL -lz -lpng -lpugixml -lfreetype %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>-D PLATFORM=0 %(AdditionalOptions)</AdditionalOptions>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <PreprocessorDefinitions>ANDROID;OPENGLES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.\..\..\include;%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <CLanguageStandard>c11</CLanguageStandard>
+      <ShowIncludes>false</ShowIncludes>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>..\..\lib\android\armeabi-v7a;%(AdditionalLibraryDirectories);$(ToolchainPrebuiltPath)\lib\gcc\$(ToolchainName)\$(ToolchainFullVersionName)\$(PlatformShortName);$(StlLibraryPath)</AdditionalLibraryDirectories>
+      <AdditionalOptions>-lm -lGLESv3 -lEGL -lz -lpng -lpugixml -lfreetype %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(OutputPath)$(TargetFileName)"  "$(SolutionDir)lib\android\armeabi-v7a\"       /Y /E /R
+
+xcopy "$(SolutionDir)lib\android\armeabi-v7a\*"     "$(SolutionDir)AndroidApp\app\src\main\jniLibs\armeabi-v7a\"       /Y /E /R
+
+del /q "$(SolutionDir)AndroidApp\app\src\main\assets\resources\*"
+
+xcopy "$(SolutionDir)resources\*"     "$(SolutionDir)AndroidApp\app\src\main\assets\resources\*"      /Y /E /R /S</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Copy Output and Assets to Android Studio</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>
