@@ -9,21 +9,26 @@ unsigned char* Framebuffer::getFramebuffer(GLenum framebuffer)
 {
 	size_t width = RendererSettings::getInstance()->getWidth();
 	size_t height = RendererSettings::getInstance()->getHeight();
-	unsigned char* data = new unsigned char[3 * width * height];
+	unsigned char* data = new unsigned char[4 * width * height];
 
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
 	glReadBuffer(framebuffer);
 
 	if (glGetError() == GL_INVALID_OPERATION)
-		printf("Error setting FRAMEBUFFER\n");
+		printf("Error setting FRAMEBUFFER");
 
-	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, data);
+	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 	if (glGetError() != GL_NO_ERROR)
-		printf("Unknown error Reading Pixels\n");
+		printf("Unknown error Reading Pixels");
 
 	return data;
+}
+
+void Framebuffer::saveImage(std::string filename, unsigned char* pixels, size_t width, size_t height) 
+{
+	stbi_write_png(filename.c_str(), width, height, 4, pixels, 0);
 }
 
 void Framebuffer::saveFrambebuffer(std::string filename, GLenum framebuffer)
@@ -33,20 +38,21 @@ void Framebuffer::saveFrambebuffer(std::string filename, GLenum framebuffer)
 
 	unsigned char* data = getFramebuffer(framebuffer);
 
-	stbi_write_bmp(filename.c_str(), width, height, 3, data);
+	Framebuffer::saveImage(filename, data, width, height);
 
 	delete[] data;
 }
 
-unsigned char* Framebuffer::emptyImage(size_t width, size_t height)
+unsigned char* Framebuffer::emptyImage(size_t width, size_t height, ColorRGBAc backgroundColor)
 {
-	unsigned char* data = new unsigned char[3 * width*height];
+	const int channels = 4;
 
-	for (size_t i = 0; i < 3 * width*height; i += 3)
+	unsigned char* data = new unsigned char[channels * width*height];
+
+	for (size_t i = 0; i < channels * width*height; i += channels)
 	{
-		data[i + 0] = 255;
-		data[i + 1] = 255;
-		data[i + 2] = 255;
+		for (size_t j = 0; j < channels; j++)
+			data[i + j] = backgroundColor[j];
 	}
 
 	return data;

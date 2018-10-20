@@ -14,6 +14,8 @@ public:
 
 	static void saveFrambebuffer(std::string filename, GLenum framebuffer);
 
-	static unsigned char* emptyImage(size_t width, size_t height);
+	static unsigned char* emptyImage(size_t width, size_t height, ColorRGBAc backgroundColor);
+
+	static void saveImage(std::string filename, unsigned char* pixels, size_t width, size_t height);
 
 };

@@ -41,6 +41,10 @@ private:
 	
 	GLint positionAttribute;
 	GLuint texture;
+	GLuint inputDistanceMap;
+
+	GLuint imageLocation;
+	GLuint inputImageMapLocation;
 	GLuint panelSizeLocation;
 	GLuint stepSizeLocation;
 	
@@ -52,7 +56,9 @@ private:
 public:
 	   	
 	void setUpImage(unsigned char* pixels, size_t width, size_t height);
-	void updateImage(unsigned char* pixels, size_t width, size_t height);
+	void updateInputImage(unsigned char* pixels, size_t width, size_t height, GLuint textureId);
+
+	void setupDistanceMap(size_t width, size_t height);
 
 	void makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points);
 
