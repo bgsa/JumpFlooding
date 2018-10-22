@@ -234,6 +234,17 @@ public:
 	}
 
 	/// <summary>
+	/// Divide the each component by other component's vector
+	/// </summary>
+	API_INTERFACE Vec2<T> operator/(Vec2<T> vector)
+	{
+		return Vec2<T>(
+				values[0] / vector[0],
+				values[1] / vector[1]
+			);
+	}
+
+	/// <summary>
 	/// Sum this vector to another one
 	/// <summary>
 	API_INTERFACE Vec2<T> operator+(Vec2<T> vector)

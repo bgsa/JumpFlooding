@@ -22,6 +22,22 @@ public:
 		values[3] = 0;
 	}
 
+	Vec4(T value) 
+	{
+		values[0] = value;
+		values[1] = value;
+		values[2] = value;
+		values[3] = value;
+	}
+
+	Vec4(Vec2<T> xyComponents, Vec2<T> zwComponents)
+	{
+		values[0] = xyComponents[0];
+		values[1] = xyComponents[1];
+		values[2] = zwComponents[0];
+		values[3] = zwComponents[1];
+	}
+
 	Vec4(Vec3<T> vector, T w) { 
 		values[0] = vector.x();;
 		values[1] = vector.y();
@@ -258,6 +274,41 @@ public:
 		result[3] = values[3] * value;
 
 		return result;
+	}
+
+	/// <summary>
+	/// Multiply the vector to a scalar
+	/// <summary>
+	API_INTERFACE void operator*=(T value)
+	{
+		values[0] = values[0] * value;
+		values[1] = values[1] * value;
+		values[2] = values[2] * value;
+		values[3] = values[3] * value;
+	}
+
+	/// <summary>
+	/// Divide the vector to a scalar
+	/// <summary>
+	API_INTERFACE Vec4<T> operator/(T value)
+	{
+		return Vec4<T>(
+			values[0] / value,
+			values[1] / value,
+			values[2] / value,
+			values[3] / value
+		);
+	}
+
+	/// <summary>
+	/// Divide the vector to a scalar
+	/// <summary>
+	API_INTERFACE void operator/=(T value)
+	{
+		values[0] = values[0] / value;
+		values[1] = values[1] / value;
+		values[2] = values[2] / value;
+		values[3] = values[3] / value;
 	}
 
 	/// <summary>

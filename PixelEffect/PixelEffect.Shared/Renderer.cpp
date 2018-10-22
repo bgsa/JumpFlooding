@@ -40,7 +40,7 @@ void Renderer::onKeyDown(int keyCode)
 	float height = (float) RendererSettings::getInstance()->getHeight();
 	Mat4f projectionViewMatrix = camera.getHUDProjectionMatrix(width, height);
 
-	panel->makeVoronoi(projectionViewMatrix, points);
+	panel->makeVoronoiCPU(projectionViewMatrix, points);
 
 	//clear points
 	for (size_t i = 0; i < points.size(); i++)
