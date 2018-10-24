@@ -35,17 +35,19 @@ void Panel::init()
 
 
 	string fragmentShaderSource = "#version 300 es \n"
-		"precision mediump float; \n"
+		"precision highp float;	\n"
+		"precision highp int;	\n"
+		"in vec4 fragmentColor; \n"
+
 
 		"uniform sampler2D inputColorTexture; \n"
 		"uniform sampler2D inputDistanceMap; \n"
 
 		"uniform vec2 panelSize; \n"
+		"uniform vec2 pixelSize; \n"
 		"uniform float stepSize; \n"
 
-		"in vec4 fragmentColor; \n"
-
-		"layout(location = 0) out vec4 FragColor; \n"
+		"layout(location = 0) out vec4 outputColor; \n"
 		"layout(location = 1) out vec4 outputDistanceMap; \n"
 		
 		"vec2 pack2(float value) {									\n"
@@ -70,22 +72,27 @@ void Panel::init()
 
 		"void main() \n"
 		"{ \n"
-			"const vec4 whiteColor         = vec4(1.0);																\n"
 			"float nearestDistanceFromSeed = 99999.0;																\n"
-			"vec2 textureCoordinate        = vec2(gl_FragCoord.x / panelSize.x, gl_FragCoord.y / panelSize.y);		\n"						
-			"vec4 nearestSeedColor         = texture(inputColorTexture, textureCoordinate);							\n"
+			"vec2 textureCoordinate        = gl_FragCoord.xy / panelSize.xy;										\n"						
 			"vec4 positionAsColor          = texture(inputDistanceMap, textureCoordinate);							\n"
 			"vec2 nearestSeedCoordinate    = vec2( unpack2(positionAsColor.xy) , unpack2(positionAsColor.zw) );		\n"
 
-			"if ( nearestSeedCoordinate != vec2( 0.0 ) )								\n"
-				"nearestDistanceFromSeed = distance(nearestSeedCoordinate, textureCoordinate);											\n"
+			"outputColor				   = texture(inputColorTexture, textureCoordinate);							\n"
+			"outputDistanceMap			   = vec4( 0.0 );															\n"
+
+			"bool isSeed = outputColor.w == 1.0;																	\n"
+
+			"if ( isSeed ) {																						\n"
+				"nearestDistanceFromSeed = distance(nearestSeedCoordinate, textureCoordinate);						\n"
+				"outputDistanceMap = texture(inputDistanceMap, textureCoordinate);								\n"
+			"} \n"
 				
-			"if (stepSize != 0.0) {																			\n"
+			"if (stepSize != 0.0) {																					\n"
 
-				"for (int y = -1; y <= 1; ++y) {																\n"
-					"for (int x = -1; x <= 1; ++x) {															\n"
+				"for (int x = -1; x <= 1; ++x) {															\n"
+					"for (int y = -1; y <= 1; ++y) {																\n"					
 
-						"vec2 neighborCoordinate =  textureCoordinate + (vec2(x,y) * stepSize) / panelSize.xy;				\n"
+						"vec2 neighborCoordinate =  textureCoordinate + (vec2(x,y) * pixelSize * stepSize);						\n"
 
 						"bool outOfTextureRange = neighborCoordinate.x < 0.0 || neighborCoordinate.x > 1.0 || neighborCoordinate.y < 0.0  || neighborCoordinate.y > 1.0; \n"
 						"if ( outOfTextureRange )									\n"
@@ -93,37 +100,107 @@ void Panel::init()
 
 						"vec4 neighborColor = texture(inputColorTexture, neighborCoordinate);								\n"
 
-						"vec4 positionAsColor = texture(inputDistanceMap, neighborCoordinate);									\n"
-						"vec2 neighborSeedCoordinate = vec2( unpack2(positionAsColor.xy) , unpack2(positionAsColor.zw) );	\n"
-
-						"if( nearestSeedCoordinate == neighborSeedCoordinate || neighborSeedCoordinate == vec2(0.0) ) \n"
+						"if( neighborColor.w == 0.0 ) \n"
 							"continue; \n"
+
+						"vec4 neighborCoordinateAsColor = texture(inputDistanceMap, neighborCoordinate);									\n"
+						"vec2 neighborSeedCoordinate = vec2( unpack2(neighborCoordinateAsColor.xy) , unpack2(neighborCoordinateAsColor.zw) );	\n"
 
 						"float distanceFromNeighborSeed = distance(neighborSeedCoordinate, textureCoordinate);		\n"
 		
 						"if (distanceFromNeighborSeed < nearestDistanceFromSeed) {												\n"
-							"nearestSeedColor = neighborColor;														\n"
-							"nearestSeedCoordinate = neighborSeedCoordinate;										\n"
+							"outputColor			 = neighborColor;														\n"
+							"outputDistanceMap		 = neighborCoordinateAsColor;										\n"
 							"nearestDistanceFromSeed = distanceFromNeighborSeed;												\n"							
-						"}\n"
-						
+						"}\n"						
 					"} \n"
 				"} \n"
 
-				"FragColor = nearestSeedColor; \n"
-				"outputDistanceMap = vec4( pack2(nearestSeedCoordinate.x) , pack2(nearestSeedCoordinate.y) );	\n"
-
-			"} else { \n"
-				"FragColor = texture(inputColorTexture, textureCoordinate); \n"
-
-				"bool isSeed = nearestSeedColor != whiteColor;													\n"
-
-				"if (isSeed) \n"
-					"outputDistanceMap = vec4( pack2(textureCoordinate.x) , pack2(textureCoordinate.y) );		\n"
-				"else \n"
-					"outputDistanceMap = vec4( 0.0 );											\n"
 			"} \n"
+
 		"} \n";
+
+/*
+	"uniform sampler2D inputColorTexture;																	\n"
+	"uniform sampler2D inputDistanceMap;																	\n"
+	"uniform vec2 panelSize;																				\n"
+	"uniform vec2 pixelSize;																				\n"
+	"uniform float stepSize;																				\n"
+	"layout(location = 0) out vec4 outputColor;  // Paint color 											\n"
+	"layout(location = 1) out vec4 outputDistanceMap;  // Paint ids 										\n"
+
+	"vec4 nullId = vec4(0.0);																				\n"
+
+	"vec2 pack2(float value) {									\n"
+	"	int ivalue = int(value * 256.0 * 256.0);				\n"
+	"	int ix = ivalue % 256;									\n"
+	"	int iy = ivalue / 256;									\n"
+	"	return vec2(float(ix) / 255.0, float(iy) / 255.0);		\n"
+	"}															\n"
+
+	"float unpack2(vec2 v) {									\n"
+	"	int ix = int(round(v.x*255.0));							\n"
+	"	int iy = int(round(v.y*255.0));							\n"
+	"	int ivalue = ix + iy * 256;								\n"
+	"	return float(ivalue) / 256.0 / 256.0;					\n"
+	"}															\n"
+
+	"void main() {																				\n"
+		"vec2 v_st = gl_FragCoord.xy / panelSize.xy;															\n"
+
+		"vec4 sampleId = texture(inputColorTexture, v_st);																				\n"
+
+		"if (stepSize == 0.0) {																					\n"
+
+			"outputColor = texture(inputColorTexture, v_st); \n"
+
+			"if (outputColor.w == 1.0)											\n"
+				"outputDistanceMap = vec4( pack2(v_st.x) , pack2(v_st.y) );		\n"
+			"else \n"
+				"outputDistanceMap = vec4( 0.0 );											\n"
+
+		"} else {											 \n"
+
+			"if (sampleId.w == 1.0) {  // A seed pixel																				\n"
+				"outputColor = sampleId;																				\n"
+				"outputDistanceMap = texture(inputDistanceMap, v_st);																				\n"
+				"return;																				\n"
+			"}																				\n"
+
+			"vec4 bestId = nullId;																				\n"
+			"vec2 bestCoord = vec2(0.0);																				\n"
+			"float bestDist = 99999.0;																				\n"
+
+			"for (int y = -1; y <= 1; ++y) {																				\n"
+				"for (int x = -1; x <= 1; ++x) {																				\n"
+
+					"vec2 sampleCoord = v_st + vec2(x, y) * pixelSize * stepSize;																				\n"
+
+					"vec4 sampleId = texture(inputColorTexture, sampleCoord);																				\n"
+
+					"if (sampleId == nullId) continue; // Empty background neighbor pixel																				\n"
+
+					"if (sampleId.w == 0.0) { // Neighbor pixel																				\n"
+						"vec4 tmp = texture(inputDistanceMap, sampleCoord);																				\n"
+						"// Coordinate of actual seed stored in inputDistanceMap														\n"
+						"sampleCoord = vec2(unpack2(tmp.xy), unpack2(tmp.zw));																				\n"
+					"}																				\n"
+
+					"float dist = distance(sampleCoord, v_st);																				\n"
+
+					"if (dist < bestDist) {																				\n"
+						"bestDist = dist;																				\n"
+						"bestCoord = sampleCoord;																				\n"
+						"bestId = vec4(texture(inputColorTexture, sampleCoord).xy, 0.0, 0.0);																				\n"
+					"}																				\n"
+				"}																				\n"
+			"}																				\n"
+
+			"outputColor = bestId;																				\n"
+			"outputDistanceMap = vec4(pack2(bestCoord.x), pack2(bestCoord.y));																				\n"
+		"}																				\n"
+	"}																				\n";
+	*/
 
 	programShader = Shader::loadShaderProgram(vertexShaderSource.c_str(), fragmentShaderSource.c_str());
 
@@ -154,7 +231,6 @@ void processaFragmento(
 	unsigned char * outputDistance,
 	int stepSize)
 {
-	const Vec4f whiteColor         = Vec4f(1.0f);
 	float nearestDistanceFromSeed = 99999.0f;
 	Vec2f textureCoordinate        = Vec2f(row / panelSize.x(), column / panelSize.y());
 	Vec4f nearestSeedColor         = texture(inputColor, panelSize[0], panelSize[1], 4, textureCoordinate);						
@@ -186,7 +262,6 @@ void Panel::makeVoronoiCPU(Mat4f projectionViewMatrix, std::vector<Point2D*> poi
 	Vec4f point1Color = Vec4f( 255.0f, 0.0f, 0.0f, 255.0f);
 	Vec4f point2Color = Vec4f( 0.0f, 0.0f, 255.0f, 255.0f);
 	Vec4f blackColor = Vec4f(0.0f, 0.0f, 0.0f, 255.0f);
-	Vec4f whiteColor = Vec4f(255.0f, 255.0f, 255.0f, 255.0f);
 	Vec4f blackTransparentColor = Vec4f(0.0f);
 
 	unsigned char* inputColor = new unsigned char[channels * width * height];
@@ -265,19 +340,55 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 	unsigned char* pixels = nullptr;
 	int stepCount = (int)log2f(float(width));
 	
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	glDisable(GL_PROGRAM_POINT_SIZE);
 
 	for (Point2D* point : points)
 		point->render(projectionViewMatrix);
-
-	pixels = Framebuffer::getFramebuffer(GL_BACK);
-	glActiveTexture(GL_TEXTURE0);
-	updateInputColorTexture(pixels, width, height, inputColorTexture);
-	delete[] pixels;
-		
 	
+	copyFromBufferToTexture(0, GL_BACK, inputColorTexture, GL_TEXTURE0, width, height, "color-init");
+	
+	GLuint customFramebuffer = generateFramebuffer(width, height);
+	
+	stepSize = 0.0f;
+	render(projectionViewMatrix);
+	
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-0");
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputDistanceMap, GL_TEXTURE1, width, height, "distance-map-0");
+	
+	int contador = 1;
+	for (; stepCount > 0; stepCount--)
+	{	
+		stepSize = powf(2, stepCount);
+		render(projectionViewMatrix);
+		
+		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-" + std::to_string(contador) );
+		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputDistanceMap, GL_TEXTURE1, width, height, "distance-map-" + std::to_string(contador) );
+		
+		contador++;
+	}
+
+	glDeleteFramebuffers(1, &customFramebuffer);
+}
+
+void Panel::copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, std::string filename)
+{
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+
+	glReadBuffer(buffer);
+	glActiveTexture(textureUnit);
+	glBindTexture(GL_TEXTURE_2D, texture);	
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, width, height, 0);
+
+	unsigned char* pixels = new unsigned char[4 * width*height];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);;
+	Framebuffer::saveImage("input-" + filename + ".png", pixels, width, height);
+	delete[] pixels;
+}
+
+GLuint Panel::generateFramebuffer(size_t width, size_t height)
+{
 	GLuint outputColorTexure;
 	glGenTextures(1, &outputColorTexure);
 	glBindTexture(GL_TEXTURE_2D, outputColorTexure);
@@ -297,6 +408,8 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 	GLuint customFramebuffer;
 	glGenFramebuffers(1, &customFramebuffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, customFramebuffer);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, customFramebuffer);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
 	glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH, width);
 	glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT, height);
@@ -309,52 +422,7 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 		printf("There is a problem with the FBO!");
 
-
-	glUseProgram(programShader);
-
-	stepSize = 0.0f;
-	render(projectionViewMatrix);
-
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, customFramebuffer);
-
-	pixels = Framebuffer::getFramebuffer(GL_COLOR_ATTACHMENT0);
-	Framebuffer::saveImage("input-color-init.png", pixels, width, height);
-	glActiveTexture(GL_TEXTURE0);
-	updateInputColorTexture(pixels, width, height, inputColorTexture);
-	delete[] pixels;
-
-	pixels = Framebuffer::getFramebuffer(GL_COLOR_ATTACHMENT1);
-	Framebuffer::saveImage("input-distance-init.png", pixels, width, height);
-	glActiveTexture(GL_TEXTURE1);
-	updateInputColorTexture(pixels, width, height, inputDistanceMap);
-	delete[] pixels;
-
-	stepSize = (float) int(width / 2.0f);
-		
-	int contador = 1;
-	for (; stepCount > 0; stepCount--)
-	{	
-		render(projectionViewMatrix);
-
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, customFramebuffer);
-
-		pixels = Framebuffer::getFramebuffer(GL_COLOR_ATTACHMENT0);
-		Framebuffer::saveImage("input-color-pass" + std::to_string(contador) + ".png", pixels, width, height);
-		glActiveTexture(GL_TEXTURE0);
-		updateInputColorTexture(pixels, width, height, inputColorTexture);
-		delete[] pixels;
-
-		pixels = Framebuffer::getFramebuffer(GL_COLOR_ATTACHMENT1);
-		Framebuffer::saveImage("input-distance-pass" + std::to_string(contador) + ".png", pixels, width, height);
-		glActiveTexture(GL_TEXTURE1);
-		updateInputColorTexture(pixels, width, height, inputDistanceMap);
-		delete[] pixels;
-
-		stepSize = (float) int(stepSize / 2.0f);
-		contador++;
-	}
-
-	glDeleteFramebuffers(1, &customFramebuffer);
+	return customFramebuffer;
 }
 
 void Panel::setUpImage(unsigned char* pixels, size_t width, size_t height)
@@ -444,6 +512,7 @@ void Panel::initVBO()
 	colorLocation = glGetUniformLocation(programShader, "Color");
 	panelSizeLocation = glGetUniformLocation(programShader, "panelSize");
 	stepSizeLocation = glGetUniformLocation(programShader, "stepSize");	
+	pixelSizeLocation = glGetUniformLocation(programShader, "pixelSize");
 	
 	positionAttribute = glGetAttribLocation(programShader, "Position");
 
@@ -472,6 +541,7 @@ void Panel::render(Mat4f projectionViewMatrix)
 	glUniform4f(colorLocation, color->Red, color->Green, color->Blue, color->Alpha);
 	glUniform2f(panelSizeLocation, getWidth(), getHeight() );
 	glUniform1f(stepSizeLocation, stepSize);
+	glUniform2f(pixelSizeLocation, 1.0f / getWidth(), 1.0f / getHeight());
 	
 	setUpPositionAttribute();
 

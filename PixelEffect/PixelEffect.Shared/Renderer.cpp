@@ -40,7 +40,8 @@ void Renderer::onKeyDown(int keyCode)
 	float height = (float) RendererSettings::getInstance()->getHeight();
 	Mat4f projectionViewMatrix = camera.getHUDProjectionMatrix(width, height);
 
-	panel->makeVoronoiCPU(projectionViewMatrix, points);
+	//panel->makeVoronoiCPU(projectionViewMatrix, points);
+	panel->makeVoronoi(projectionViewMatrix, points);
 
 	//clear points
 	for (size_t i = 0; i < points.size(); i++)
@@ -60,10 +61,11 @@ void Renderer::onMouseDown(MouseEvent e)
 	int red = colorRandomizer.rand();
 	int green = colorRandomizer.rand();
 	int blue = colorRandomizer.rand();
+	//int blue = 0.0f;
 
 	Point2D* point = new Point2D;
 	point->setPosition(e.currentPosition);
-	point->setPointSize(10.0f);
+	point->setPointSize(30.0f);
 	point->setColor({ red/255.0f , green/255.0f, blue/255.0f, 1.0f });
 	point->init();
 	points.push_back(point);

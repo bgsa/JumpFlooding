@@ -47,11 +47,15 @@ private:
 	GLuint inputImageMapLocation;
 	GLuint panelSizeLocation;
 	GLuint stepSizeLocation;
+	GLuint pixelSizeLocation;
 	
 	void initVBO();
 	void setUpPositionAttribute();
 
 	float stepSize = 0.0;
+
+	GLuint generateFramebuffer(size_t width, size_t height);
+	void copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, std::string filename);
 		
 public:
 	   	
