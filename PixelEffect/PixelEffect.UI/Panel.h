@@ -40,6 +40,8 @@ private:
 	};
 	
 	GLint positionAttribute;
+	GLint textureAttribute;
+
 	GLuint inputColorTexture;
 	GLuint inputDistanceMap;
 
@@ -51,6 +53,7 @@ private:
 	
 	void initVBO();
 	void setUpPositionAttribute();
+	void setUpTextureAttribute();
 
 	float stepSize = 0.0;
 

@@ -66,6 +66,7 @@ void Renderer::onMouseDown(MouseEvent e)
 	Point2D* point = new Point2D;
 	point->setPosition(e.currentPosition);
 	point->setPointSize(30.0f);
+	//point->setPointSize(1.0f);
 	point->setColor({ red/255.0f , green/255.0f, blue/255.0f, 1.0f });
 	point->init();
 	points.push_back(point);

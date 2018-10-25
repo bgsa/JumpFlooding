@@ -24,22 +24,25 @@ void Panel::init()
 		"uniform vec4 Color; \n"
 
 		"in  vec2 Position; \n"
+		"in  vec2 Texture;  \n"
 		
 		"out vec4 fragmentColor; \n"
+		"out vec2 textureCoordinate; \n"
 
 		"void main() \n"
 		"{													\n"
-		"	gl_Position = projectionView * model * vec4(Position, 0.0, 1.0); \n"
+		"	gl_Position = projectionView * model * vec4(Position, 0.0, 1.0);	\n"
+		"	textureCoordinate = Texture;										\n"
 		"	fragmentColor = Color; \n"
-		"}													\n";
+		"}																		\n";
 
 
 	string fragmentShaderSource = "#version 300 es \n"
 		"precision highp float;	\n"
 		"precision highp int;	\n"
 		"in vec4 fragmentColor; \n"
-
-
+		"in vec2 textureCoordinate; \n"
+		
 		"uniform sampler2D inputColorTexture; \n"
 		"uniform sampler2D inputDistanceMap; \n"
 
@@ -64,144 +67,57 @@ void Panel::init()
 		"	return float(ivalue) / 256.0 / 256.0;					\n"
 		"}															\n"
 
-		"vec2 getCoordinatesFromTexture(vec2 textureCoordinate, sampler2D sampler) {				\n"
-		"	vec4 positionAsColor = texture(sampler, textureCoordinate);								\n"
-		"	vec2 coordinates = vec2( unpack2(positionAsColor.xy) , unpack2(positionAsColor.zw) );   \n"
-		"	return coordinates;																		\n"
-		"}																							\n"
-
 		"void main() \n"
 		"{ \n"
 			"float nearestDistanceFromSeed = 99999.0;																\n"
-			"vec2 textureCoordinate        = gl_FragCoord.xy / panelSize.xy;										\n"						
-			"vec4 positionAsColor          = texture(inputDistanceMap, textureCoordinate);							\n"
-			"vec2 nearestSeedCoordinate    = vec2( unpack2(positionAsColor.xy) , unpack2(positionAsColor.zw) );		\n"
-
-			"outputColor				   = texture(inputColorTexture, textureCoordinate);							\n"
+			//"vec2 textureCoordinate        = gl_FragCoord.xy / panelSize.xy;										\n"						
+			
+			"outputColor				   = vec4( 0.0 );															\n"
 			"outputDistanceMap			   = vec4( 0.0 );															\n"
-
-			"bool isSeed = outputColor.w == 1.0;																	\n"
-
-			"if ( isSeed ) {																						\n"
-				"nearestDistanceFromSeed = distance(nearestSeedCoordinate, textureCoordinate);						\n"
-				"outputDistanceMap = texture(inputDistanceMap, textureCoordinate);								\n"
-			"} \n"
-				
+						
 			"if (stepSize != 0.0) {																					\n"
 
-				"for (int x = -1; x <= 1; ++x) {															\n"
-					"for (int y = -1; y <= 1; ++y) {																\n"					
+				"for (int x = -1; x <= 1; x++) {																	\n"
+					"for (int y = -1; y <= 1; y++) {																\n"					
 
-						"vec2 neighborCoordinate =  textureCoordinate + (vec2(x,y) * pixelSize * stepSize);						\n"
+						"vec2 neighborCoordinate =  textureCoordinate + (vec2(x,y) * pixelSize * stepSize);			\n"
+						"vec4 neighborColor = texture(inputColorTexture, neighborCoordinate);						\n"
 
 						"bool outOfTextureRange = neighborCoordinate.x < 0.0 || neighborCoordinate.x > 1.0 || neighborCoordinate.y < 0.0  || neighborCoordinate.y > 1.0; \n"
 						"if ( outOfTextureRange )									\n"
 							"continue;												\n"
-
-						"vec4 neighborColor = texture(inputColorTexture, neighborCoordinate);								\n"
-
-						"if( neighborColor.w == 0.0 ) \n"
+		
+						"if( neighborColor == vec4( 0.0 ) ) \n"
 							"continue; \n"
 
-						"vec4 neighborCoordinateAsColor = texture(inputDistanceMap, neighborCoordinate);									\n"
-						"vec2 neighborSeedCoordinate = vec2( unpack2(neighborCoordinateAsColor.xy) , unpack2(neighborCoordinateAsColor.zw) );	\n"
-
-						"float distanceFromNeighborSeed = distance(neighborSeedCoordinate, textureCoordinate);		\n"
-		
-						"if (distanceFromNeighborSeed < nearestDistanceFromSeed) {												\n"
-							"outputColor			 = neighborColor;														\n"
-							"outputDistanceMap		 = neighborCoordinateAsColor;										\n"
-							"nearestDistanceFromSeed = distanceFromNeighborSeed;												\n"							
+						"vec4 neighborSeedCoordinateAsColor = texture(inputDistanceMap, neighborCoordinate);										\n"
+						"vec2 neighborSeedCoordinate = vec2( unpack2(neighborSeedCoordinateAsColor.xy) , unpack2(neighborSeedCoordinateAsColor.zw) );	\n"
+				
+						"float distanceFromNeighborSeed = distance(neighborSeedCoordinate, textureCoordinate);			\n"
+				
+						"if (distanceFromNeighborSeed < nearestDistanceFromSeed) {										\n"
+							"outputColor			 = neighborColor;													\n"
+							"outputDistanceMap		 = neighborSeedCoordinateAsColor;									\n"
+							"nearestDistanceFromSeed = distanceFromNeighborSeed;										\n"							
 						"}\n"						
+
 					"} \n"
 				"} \n"
 
-			"} \n"
+			"} else	{																									\n"				
+				"bool isSeed = texture(inputColorTexture, textureCoordinate).w == 1.0;									\n"
+
+				"if ( isSeed ) {																						\n"
+					"outputColor = texture(inputColorTexture, textureCoordinate);										\n"
+					"outputDistanceMap = vec4( pack2(textureCoordinate.x) , pack2(textureCoordinate.y) );				\n"
+				"} else	{																								\n"
+					"outputColor = vec4( 0.0 );																			\n"
+					"outputDistanceMap = vec4( 0.0 );																	\n"
+				"}																										\n"
+			"}																											\n"
 
 		"} \n";
-
-/*
-	"uniform sampler2D inputColorTexture;																	\n"
-	"uniform sampler2D inputDistanceMap;																	\n"
-	"uniform vec2 panelSize;																				\n"
-	"uniform vec2 pixelSize;																				\n"
-	"uniform float stepSize;																				\n"
-	"layout(location = 0) out vec4 outputColor;  // Paint color 											\n"
-	"layout(location = 1) out vec4 outputDistanceMap;  // Paint ids 										\n"
-
-	"vec4 nullId = vec4(0.0);																				\n"
-
-	"vec2 pack2(float value) {									\n"
-	"	int ivalue = int(value * 256.0 * 256.0);				\n"
-	"	int ix = ivalue % 256;									\n"
-	"	int iy = ivalue / 256;									\n"
-	"	return vec2(float(ix) / 255.0, float(iy) / 255.0);		\n"
-	"}															\n"
-
-	"float unpack2(vec2 v) {									\n"
-	"	int ix = int(round(v.x*255.0));							\n"
-	"	int iy = int(round(v.y*255.0));							\n"
-	"	int ivalue = ix + iy * 256;								\n"
-	"	return float(ivalue) / 256.0 / 256.0;					\n"
-	"}															\n"
-
-	"void main() {																				\n"
-		"vec2 v_st = gl_FragCoord.xy / panelSize.xy;															\n"
-
-		"vec4 sampleId = texture(inputColorTexture, v_st);																				\n"
-
-		"if (stepSize == 0.0) {																					\n"
-
-			"outputColor = texture(inputColorTexture, v_st); \n"
-
-			"if (outputColor.w == 1.0)											\n"
-				"outputDistanceMap = vec4( pack2(v_st.x) , pack2(v_st.y) );		\n"
-			"else \n"
-				"outputDistanceMap = vec4( 0.0 );											\n"
-
-		"} else {											 \n"
-
-			"if (sampleId.w == 1.0) {  // A seed pixel																				\n"
-				"outputColor = sampleId;																				\n"
-				"outputDistanceMap = texture(inputDistanceMap, v_st);																				\n"
-				"return;																				\n"
-			"}																				\n"
-
-			"vec4 bestId = nullId;																				\n"
-			"vec2 bestCoord = vec2(0.0);																				\n"
-			"float bestDist = 99999.0;																				\n"
-
-			"for (int y = -1; y <= 1; ++y) {																				\n"
-				"for (int x = -1; x <= 1; ++x) {																				\n"
-
-					"vec2 sampleCoord = v_st + vec2(x, y) * pixelSize * stepSize;																				\n"
-
-					"vec4 sampleId = texture(inputColorTexture, sampleCoord);																				\n"
-
-					"if (sampleId == nullId) continue; // Empty background neighbor pixel																				\n"
-
-					"if (sampleId.w == 0.0) { // Neighbor pixel																				\n"
-						"vec4 tmp = texture(inputDistanceMap, sampleCoord);																				\n"
-						"// Coordinate of actual seed stored in inputDistanceMap														\n"
-						"sampleCoord = vec2(unpack2(tmp.xy), unpack2(tmp.zw));																				\n"
-					"}																				\n"
-
-					"float dist = distance(sampleCoord, v_st);																				\n"
-
-					"if (dist < bestDist) {																				\n"
-						"bestDist = dist;																				\n"
-						"bestCoord = sampleCoord;																				\n"
-						"bestId = vec4(texture(inputColorTexture, sampleCoord).xy, 0.0, 0.0);																				\n"
-					"}																				\n"
-				"}																				\n"
-			"}																				\n"
-
-			"outputColor = bestId;																				\n"
-			"outputDistanceMap = vec4(pack2(bestCoord.x), pack2(bestCoord.y));																				\n"
-		"}																				\n"
-	"}																				\n";
-	*/
-
+	
 	programShader = Shader::loadShaderProgram(vertexShaderSource.c_str(), fragmentShaderSource.c_str());
 
 	initVBO();
@@ -458,7 +374,7 @@ void Panel::setupDistanceMap(size_t width, size_t height)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	unsigned char* blackTexture = Framebuffer::emptyImage(width, height, ColorRGBAc( 0,0,0,255 ));
+	unsigned char* emptyTexture = Framebuffer::emptyImage(width, height, ColorRGBAc( 0,0,0,0 ));
 
 	glTexImage2D(GL_TEXTURE_2D, //target
 		0, //level
@@ -468,9 +384,9 @@ void Panel::setupDistanceMap(size_t width, size_t height)
 		0, //border
 		GL_RGBA, //format GL_RGB  or GL_RGBA (format of data read from textel file) (GL_RGB for *.bmp files and GL_RGBA for *.rgb files) GL_ALPHA GL_RGB GL_RGBA GL_LUMINANCE GL_LUMINANCE_ALPHA
 		GL_UNSIGNED_BYTE, //type , GL_FLOAT
-		blackTexture); //const void *pixels
+		emptyTexture); //const void *pixels
 
-	delete[] blackTexture;
+	delete[] emptyTexture;
 }
 
 void Panel::updateInputColorTexture(unsigned char* pixels, size_t width, size_t height, GLuint textureId)
@@ -501,6 +417,17 @@ void Panel::setUpPositionAttribute()
 	glEnableVertexAttribArray(positionAttribute); //habilita atributo de coordenadas
 }
 
+void Panel::setUpTextureAttribute()
+{
+	glVertexAttribPointer(textureAttribute,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		0,
+		(void*)sizeof(panelAttributes.position)); //Specify that our coordinate data is going into attribute index 0(shaderAttribute), and contains three floats per vertex
+	glEnableVertexAttribArray(textureAttribute); //habilita atributo de coordenadas
+}
+
 void Panel::initVBO()
 {	
 	glGenBuffers(1, &vertexBufferObject);  //aloca o buffr
@@ -515,6 +442,7 @@ void Panel::initVBO()
 	pixelSizeLocation = glGetUniformLocation(programShader, "pixelSize");
 	
 	positionAttribute = glGetAttribLocation(programShader, "Position");
+	textureAttribute = glGetAttribLocation(programShader, "Texture");
 
 	inputColorTextureLocation = glGetUniformLocation(programShader, "inputColorTexture");
 	inputImageMapLocation = glGetUniformLocation(programShader, "inputDistanceMap");
@@ -544,6 +472,7 @@ void Panel::render(Mat4f projectionViewMatrix)
 	glUniform2f(pixelSizeLocation, 1.0f / getWidth(), 1.0f / getHeight());
 	
 	setUpPositionAttribute();
+	setUpTextureAttribute();
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
