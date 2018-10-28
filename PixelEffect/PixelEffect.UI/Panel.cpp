@@ -58,8 +58,9 @@ void Panel::init()
 				"float nearestDistance = 9999.0;											\n"
 				"float bestColor = vec4(0.0);												\n"
 
+				"const float offset = 1.4;													\n"
 				"const float column = 0.0;													\n"
-				"for (float row = 0.0; row <= panelSize.y * 1.5 ; row += 1.5) {					\n"					
+				"for (float row = 0.0; row <= panelSize.y * offset ; row += offset) {					\n"					
 					"vec2 seedCoordinate = vec2(row , column) * pixelSize;										\n"
 
 					"vec4 color = texture(seedsColor, seedCoordinate);						\n"
@@ -68,13 +69,18 @@ void Panel::init()
 						"break;								\n"
 
 					"vec4 positionAsColor = texture(seedsPosition, seedCoordinate);						\n"
-					"vec2 position = vec2( unpack2(positionAsColor.xy) , unpack2(positionAsColor.zw) );		\n"
+					"vec2 position = vec2( unpack2(positionAsColor.xy) , unpack2(positionAsColor.zw) );	\n"
 		
-					"float distanceFromSeed = distance(position, textureCoordinate);			\n"
+					"float distanceFromSeed = distance(position, textureCoordinate);					\n"
+					"bool isMedialAxis = abs(distanceFromSeed - nearestDistance) < 0.001;				\n"
 
-					"if (distanceFromSeed < nearestDistance) {										\n"
-						"outputColor	 = color;													\n"
-						"nearestDistance = distanceFromSeed;										\n"
+					"if ( isMedialAxis ) {																\n"
+						"outputColor	 = vec4(0.0, 0.0, 0.0, 1.0);									\n"
+					"} else { \n"
+						"if (distanceFromSeed < nearestDistance) {										\n"
+							"outputColor	 = color;													\n"
+							"nearestDistance = distanceFromSeed;										\n"
+						"}\n"
 					"}\n"
 
 				"} \n"
