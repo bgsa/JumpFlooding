@@ -56,18 +56,19 @@ void Renderer::onMouseDown(MouseEvent e)
 {
 	if (e.button != MouseButton::LEFT)
 		return;
-
+	
 	OpenML::Randomizer<int> colorRandomizer(0, 255);
 	int red = colorRandomizer.rand();
 	int green = colorRandomizer.rand();
 	int blue = colorRandomizer.rand();
-	//int blue = 0.0f;
+	//float blue = 0.0f;
 
 	Point2D* point = new Point2D;
 	point->setPosition(e.currentPosition);
-	point->setPointSize(30.0f);
+	//point->setPointSize(30.0f);
+	point->setPointSize(16.0f);
 	//point->setPointSize(1.0f);
-	point->setColor({ red/255.0f , green/255.0f, blue/255.0f, 1.0f });
+	point->setColor({ red/255.0f, green/255.0f, blue / 255.0f, 1.0f });
 	point->init();
 	points.push_back(point);
 
@@ -93,7 +94,7 @@ void Renderer::start()
 	panel->setWidth((float) RendererSettings::getInstance()->getWidth());
 	panel->setHeight((float) RendererSettings::getInstance()->getHeight());
 	panel->setUpImage(data, width, height);
-	panel->setupDistanceMap(width, height);
+	//panel->setupDistanceMap(width, height);
 	panel->init();
 
 	addGraphicObject(panel);

@@ -20,10 +20,10 @@
 #endif
 
 #define WINDOW_TITLE "Windows App"
-#define WINDOW_POSITION_X 300
-#define WINDOW_POSITION_Y 200
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_POSITION_X 400
+#define WINDOW_POSITION_Y 300
+#define WINDOW_WIDTH 512
+#define WINDOW_HEIGHT 512
 #define WINDOW_FULLSCREEN false
 
 int main(int argc, char *argv[])
