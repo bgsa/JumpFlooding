@@ -58,9 +58,8 @@ void Panel::init()
 				"float nearestDistance = 9999.0;											\n"
 				"float bestColor = vec4(0.0);												\n"
 
-				"const float offset = 1.4;													\n"
 				"const float column = 0.0;													\n"
-				"for (float row = 0.0; row <= panelSize.y * offset ; row += offset) {					\n"					
+				"for (float row = 0.0; row <= panelSize.y ; row += 1.0) {					\n"					
 					"vec2 seedCoordinate = vec2(row , column) * pixelSize;										\n"
 
 					"vec4 color = texture(seedsColor, seedCoordinate);						\n"
@@ -305,8 +304,8 @@ void Panel::setUpImage(unsigned char* pixels, size_t width, size_t height)
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inputColorTexture);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -324,8 +323,8 @@ void Panel::setUpImage(unsigned char* pixels, size_t width, size_t height)
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, inputDistanceMap);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
