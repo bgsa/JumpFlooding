@@ -23,7 +23,8 @@ namespace OpenML
 #define degreesToHout(x)	((x) * 15.0))
 #define radiansToHour(x)	degreesToHout(radiansToDegrees(x))
 
-	static std::default_random_engine randomGenerator;
+	static std::default_random_engine randomGenerator{ std::random_device{}() };
+
 	template<typename T>
 	class Randomizer
 	{

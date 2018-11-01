@@ -87,12 +87,12 @@ void Renderer::start()
 {	
 	size_t width = RendererSettings::getInstance()->getWidth();
 	size_t height = RendererSettings::getInstance()->getHeight();
-	unsigned char* data = Framebuffer::emptyImage(width, height, {255, 255, 255, 255});
+	float* data = Framebuffer::emptyImage(width, height, ColorRGBAf(1.0f, 1.0f, 1.0f, 1.0f) );
 
 	panel->setColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 	panel->setWidth((float) RendererSettings::getInstance()->getWidth());
 	panel->setHeight((float) RendererSettings::getInstance()->getHeight());
-	panel->setUpImage(data, width, height);
+	panel->setupInputColor(data, width, height);
 	panel->setupDistanceMap(width, height);
 	panel->init();
 

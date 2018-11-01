@@ -20,6 +20,9 @@ Global
 		PixelEffect\PixelEffect.Framework\PixelEffect.Framework.vcxitems*{09384efd-d918-4fcd-8435-85fae7b39e48}*SharedItemsImports = 4
 		PixelEffect\PixelEffect.Shared\PixelEffect.Shared.vcxitems*{09384efd-d918-4fcd-8435-85fae7b39e48}*SharedItemsImports = 4
 		PixelEffect\PixelEffect.UI\PixelEffect.UI.vcxitems*{09384efd-d918-4fcd-8435-85fae7b39e48}*SharedItemsImports = 4
+		PixelEffect\PixelEffect.Framework\PixelEffect.Framework.vcxitems*{14ee7267-e8cc-425c-99d2-9a8c3a442e07}*SharedItemsImports = 4
+		PixelEffect\PixelEffect.Shared\PixelEffect.Shared.vcxitems*{14ee7267-e8cc-425c-99d2-9a8c3a442e07}*SharedItemsImports = 4
+		PixelEffect\PixelEffect.UI\PixelEffect.UI.vcxitems*{14ee7267-e8cc-425c-99d2-9a8c3a442e07}*SharedItemsImports = 4
 		PixelEffect\PixelEffect.UI\PixelEffect.UI.vcxitems*{6c1c80ae-09ca-471b-9c3c-d867c478df1a}*SharedItemsImports = 9
 		PixelEffect\PixelEffect.Framework\PixelEffect.Framework.vcxitems*{9598e2db-9016-42e6-9ecf-fa30c1988e8b}*SharedItemsImports = 9
 		PixelEffect\PixelEffect.Shared\PixelEffect.Shared.vcxitems*{989304c0-9bc6-4c77-9015-9d7e2219f82d}*SharedItemsImports = 9

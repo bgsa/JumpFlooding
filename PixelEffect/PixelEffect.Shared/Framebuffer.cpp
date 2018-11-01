@@ -57,3 +57,18 @@ unsigned char* Framebuffer::emptyImage(size_t width, size_t height, ColorRGBAc b
 
 	return data;
 }
+
+float* Framebuffer::emptyImage(size_t width, size_t height, ColorRGBAf backgroundColor)
+{
+	const int channels = 4;
+
+	float* data = new float[channels * width*height];
+
+	for (size_t i = 0; i < channels * width*height; i += channels)
+	{
+		for (size_t j = 0; j < channels; j++)
+			data[i + j] = backgroundColor[j];
+	}
+
+	return data;
+}

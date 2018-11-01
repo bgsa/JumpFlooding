@@ -1,20 +1,37 @@
 #include "Panel.h"
 
-Vec2f pack2(float value) 
+Vec2f pack2(float value)
 {
-	int ivalue = int(value * 256.0f * 256.0f);				
-	int ix = ivalue % 256;									
-	int iy = ivalue / 256;									
-	return Vec2f(float(ix) / 255.0f, float(iy) / 255.0f);		
-}															
+	int ivalue = int(value * 256.0f * 256.0f);
+	int ix = ivalue % 256;
+	int iy = ivalue / 256;
+	return Vec2f(float(ix) / 255.0f, float(iy) / 255.0f);
+}
 
-float unpack2(Vec2f v) 
-{									
-	int ix = int(round(v[0] * 255.0f));							
-	int iy = int(round(v[1] * 255.0f));							
-	int ivalue = ix + iy * 256.0f;								
-	return float(ivalue) / 256.0f / 256.0f;					
-}	
+float unpack2(Vec2f v)
+{
+	int ix = int(round(v[0] * 255.0f));
+	int iy = int(round(v[1] * 255.0f));
+	int ivalue = ix + iy * 256.0f;
+	return float(ivalue) / 256.0f / 256.0f;
+}
+
+Vec4f EncodeFloat(float v)
+{
+	Vec4f kEncodeMul = Vec4f(1.0, 255.0, 65025.0, 160581375.0);
+	float kEncodeBit = 1.0 / 255.0;
+	Vec4f enc = kEncodeMul * v;
+	enc = enc.fractional();
+	enc = enc - (Vec4f(enc[1] * kEncodeBit, enc[2] * kEncodeBit, enc[3] * kEncodeBit, enc[3] * kEncodeBit));	
+
+	return enc;
+}
+
+float DecodeFloat(Vec4f enc)
+{
+	Vec4f kDecodeDot = Vec4f(1.0f, 1.0f / 255.0f, 1.0f / 65025.0f, 1.0f / 160581375.0f);
+	return enc.dot(kDecodeDot);
+}
 
 void Panel::init()
 {
@@ -26,61 +43,59 @@ void Panel::init()
 		"in  vec2 Position; \n"
 		"in  vec2 Texture;  \n"
 		
-		"out vec4 fragmentColor; \n"
-		"out vec2 textureCoordinate; \n"
-
 		"void main() \n"
 		"{													\n"
 		"	gl_Position = projectionView * model * vec4(Position, 0.0, 1.0);	\n"
-		"	textureCoordinate = Texture;										\n"
-		"	fragmentColor = Color; \n"
 		"}																		\n";
 
 
 	string fragmentShaderSource = "#version 300 es \n"
 		"precision highp float;	\n"
 		"precision highp int;	\n"
-		"in vec4 fragmentColor; \n"
-		"in vec2 textureCoordinate; \n"
 		
 		"uniform sampler2D inputColorTexture; \n"
-		"uniform sampler2D inputDistanceMap; \n"
+		"uniform sampler2D inputSeedX; \n"
+		"uniform sampler2D inputSeedY; \n"
 
 		"uniform vec2 panelSize; \n"
-		"uniform vec2 pixelSize; \n"
 		"uniform float stepSize; \n"
 
 		"layout(location = 0) out vec4 outputColor; \n"
-		"layout(location = 1) out vec4 outputDistanceMap; \n"
-		
-		"vec2 pack2(float value) {									\n"
-		"	int ivalue = int(value * 256.0 * 256.0);				\n"
-		"	int ix = ivalue % 256;									\n"
-		"	int iy = ivalue / 256;									\n"
-		"	return vec2(float(ix) / 255.0, float(iy) / 255.0);		\n"
-		"}															\n"
+		"layout(location = 1) out vec4 outputSeedX; \n"
+		"layout(location = 2) out vec4 outputSeedY; \n"
 
-		"float unpack2(vec2 v) {									\n"
-		"	int ix = int(round(v.x*255.0));							\n"
-		"	int iy = int(round(v.y*255.0));							\n"
-		"	int ivalue = ix + iy * 256;								\n"
-		"	return float(ivalue) / 256.0 / 256.0;					\n"
-		"}															\n"
+		"vec4 EncodeFloat(float v) \n"
+		"{ \n"
+			"vec4 kEncodeMul = vec4(1.0, 255.0, 65025.0, 160581375.0); \n"
+			"float kEncodeBit = 1.0 / 255.0; \n"
+			"vec4 enc = kEncodeMul * v; \n"
+			"enc = fract(enc); \n"
+			"enc -= (enc.yzww * kEncodeBit); \n"
+			"return enc; \n"
+		"} \n"
+
+		"float DecodeFloat(vec4 enc) \n"
+		"{ \n"
+			"vec4 kDecodeDot = vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 160581375.0); \n"
+			"return dot(enc, kDecodeDot); \n"
+		"} \n"
 
 		"void main() \n"
 		"{ \n"
 			"float nearestDistanceFromSeed = 99999.0;																\n"
-			//"vec2 textureCoordinate        = gl_FragCoord.xy / panelSize.xy;										\n"						
+			"vec2  pixelSize			   = 1.0 / panelSize.xy;													\n"
+			"vec2  textureCoordinate       = gl_FragCoord.xy / panelSize.xy;										\n"
 			
 			"outputColor				   = vec4( 0.0 );															\n"
-			"outputDistanceMap			   = vec4( 0.0 );															\n"
-						
+			"outputSeedX				   = vec4( 0.0 );															\n"
+			"outputSeedY				   = vec4( 0.0 );															\n"
+										
 			"if (stepSize != 0.0) {																					\n"
 
-				"for (int x = -1; x <= 1; x++) {																	\n"
-					"for (int y = -1; y <= 1; y++) {																\n"					
+				"for (int x = -1; x <= 1; ++x) {																	\n"
+					"for (int y = -1; y <= 1; ++y) {																\n"					
 
-						"vec2 neighborCoordinate =  textureCoordinate + (vec2(x,y) * pixelSize * stepSize);			\n"
+						"vec2 neighborCoordinate =  textureCoordinate + (vec2(y,x) * stepSize * pixelSize);			\n"
 						"vec4 neighborColor = texture(inputColorTexture, neighborCoordinate);						\n"
 
 						"bool outOfTextureRange = neighborCoordinate.x < 0.0 || neighborCoordinate.x > 1.0 || neighborCoordinate.y < 0.0  || neighborCoordinate.y > 1.0; \n"
@@ -90,14 +105,16 @@ void Panel::init()
 						"if( neighborColor == vec4( 0.0 ) ) \n"
 							"continue; \n"
 
-						"vec4 neighborSeedCoordinateAsColor = texture(inputDistanceMap, neighborCoordinate);										\n"
-						"vec2 neighborSeedCoordinate = vec2( unpack2(neighborSeedCoordinateAsColor.xy) , unpack2(neighborSeedCoordinateAsColor.zw) );	\n"
-				
+						"vec4 neighborSeedCoordinateXAsColor = texture(inputSeedX, neighborCoordinate);										\n"
+						"vec4 neighborSeedCoordinateYAsColor = texture(inputSeedY, neighborCoordinate);										\n"
+						"vec2 neighborSeedCoordinate = vec2( DecodeFloat(neighborSeedCoordinateXAsColor) , DecodeFloat(neighborSeedCoordinateYAsColor) );	\n"
+						
 						"float distanceFromNeighborSeed = distance(neighborSeedCoordinate, textureCoordinate);			\n"
 				
 						"if (distanceFromNeighborSeed < nearestDistanceFromSeed) {										\n"
 							"outputColor			 = neighborColor;													\n"
-							"outputDistanceMap		 = neighborSeedCoordinateAsColor;									\n"
+							"outputSeedX			 = neighborSeedCoordinateXAsColor;									\n"
+							"outputSeedY			 = neighborSeedCoordinateYAsColor;									\n"
 							"nearestDistanceFromSeed = distanceFromNeighborSeed;										\n"							
 						"}\n"						
 
@@ -109,10 +126,17 @@ void Panel::init()
 
 				"if ( isSeed ) {																						\n"
 					"outputColor = texture(inputColorTexture, textureCoordinate);										\n"
-					"outputDistanceMap = vec4( pack2(textureCoordinate.x) , pack2(textureCoordinate.y) );				\n"
+
+					"outputSeedX = EncodeFloat( textureCoordinate.x );													\n"
+					"outputSeedX.w = 1.0;																				\n"
+
+					"outputSeedY = EncodeFloat( textureCoordinate.y );													\n"
+					"outputSeedY.w = 1.0;																				\n"
+
 				"} else	{																								\n"
 					"outputColor = vec4( 0.0 );																			\n"
-					"outputDistanceMap = vec4( 0.0 );																	\n"
+					"outputSeedX = vec4( 0.0 );																			\n"
+					"outputSeedY = vec4( 0.0 );																			\n"
 				"}																										\n"
 			"}																											\n"
 
@@ -123,134 +147,50 @@ void Panel::init()
 	initVBO();
 }
 
-Vec4f texture(unsigned char * texture, int width, int height, int channels, Vec2f coordinate) 
+ColorRGBAf getPixelFromBuffer(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, int row, int column)
 {
-	int index = ((coordinate.x() * width) - 1.0f) * width * channels + ((coordinate.y() * height) - 1.0f) * channels;
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);	
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glReadBuffer(buffer);	
+	glActiveTexture(textureUnit);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, width, height, 0);
+	
+	float* pixels = new float[4 * width*height];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels);
 
-	Vec4f result = {
-		float(texture[index + 0]),
-		float(texture[index + 1]),
-		float(texture[index + 2]),
-		float(texture[index + 3])
+	ColorRGBAf color = {
+		pixels[row * width * 4 + column * 4 + 0],
+		pixels[row * width * 4 + column * 4 + 1],
+		pixels[row * width * 4 + column * 4 + 2],
+		pixels[row * width * 4 + column * 4 + 3]
 	};
 
-	return result;
-}
-
-void processaFragmento(
-	int row,
-	int column,
-	Vec2f panelSize,
-	unsigned char * inputColor, 
-	unsigned char * inputDistance, 
-	unsigned char * outputColor, 
-	unsigned char * outputDistance,
-	int stepSize)
-{
-	float nearestDistanceFromSeed = 99999.0f;
-	Vec2f textureCoordinate        = Vec2f(row / panelSize.x(), column / panelSize.y());
-	Vec4f nearestSeedColor         = texture(inputColor, panelSize[0], panelSize[1], 4, textureCoordinate);						
-	Vec4f positionAsColor          = texture(inputDistance, panelSize[0], panelSize[1], 4, textureCoordinate);
-	positionAsColor /= 255.0f;
-	Vec2f nearestSeedCoordinate    = Vec2f( unpack2( Vec2f(positionAsColor.x(), positionAsColor.y()) ) , unpack2( Vec2f(positionAsColor.z(), positionAsColor.w()) ) );
-
-	if ( nearestSeedCoordinate != Vec2f(0.0f, 0.0f) )
-		nearestDistanceFromSeed = nearestSeedCoordinate.distance(textureCoordinate);
-
-	for (int y = -1; y <= 1; ++y)
-	{
-		for (int x = -1; x <= 1; ++x) 
-		{
-		}
-	}
-}
-
-void Panel::makeVoronoiCPU(Mat4f projectionViewMatrix, std::vector<Point2D*> points) 
-{
-	int width = 8;
-	int height = 7;
-	Vec2f panelSize = Vec2f( width, height );
-	int channels = 4;
-
-	Vec2f point1OnTexture = Vec2f(3.0f, 3.0f);
-	Vec2f point2OnTexture = Vec2f(6.0f, 7.0f);
-
-	Vec4f point1Color = Vec4f( 255.0f, 0.0f, 0.0f, 255.0f);
-	Vec4f point2Color = Vec4f( 0.0f, 0.0f, 255.0f, 255.0f);
-	Vec4f blackColor = Vec4f(0.0f, 0.0f, 0.0f, 255.0f);
-	Vec4f blackTransparentColor = Vec4f(0.0f);
-
-	unsigned char* inputColor = new unsigned char[channels * width * height];
-	unsigned char* inputDistance = new unsigned char[channels * width * height];
-		
-	// INICIALIZA A TEXTURA WIDTH x HEIGHT and DISTANCE MAP
-	int row = 0;
-	int column = 0;
-	for (size_t index = 0; index < channels * width * height; index += channels)
-	{
-		if (index % (width * channels) == 0) {
-			row++;
-			column = 1;
-		}
-
-		for (size_t i = 0; i < channels; i++)
-		{
-			inputColor[index + i] = 0;
-			inputDistance[index + i] = blackTransparentColor[i];
-		}
-			
-		if (Vec2f(row, column) == point1OnTexture) 
-		{
-			Vec4f positionAsColor = Vec4f(pack2(row / float(width)), pack2(column / float(height)));
-			//positionAsColor *= 255.0f;
-
-			for (size_t i = 0; i < channels; i++) 
-			{
-				inputColor[index + i] = point1Color[i];
-				inputDistance[index + i] = positionAsColor[i];
-			}	
-		}
-
-		if (Vec2f(row, column) == point2OnTexture) 
-		{
-			Vec4f positionAsColor = Vec4f(pack2(row / float(width)), pack2(column / float(height)));
-			//positionAsColor *= 255.0f;
-			
-			for (size_t i = 0; i < channels; i++) 
-			{
-				inputColor[index + i] = point2Color[i];
-				inputDistance[index + i] = positionAsColor[i];
-			}
-		}
-
-		column++;
-	}
-
-	Framebuffer::saveImage("input-color-init.png", inputColor, width, height);
-	Framebuffer::saveImage("input-distance-init.png", inputDistance, width, height);
-
-	unsigned char* outputColor = new unsigned char[channels * width * height];
-	unsigned char* outputDistance = new unsigned char[channels * width * height];
-
-	//PROCESSA UM FRAGMENT SHADER
-	row = 0;
-	column = 0;
-	for (size_t index = 0; index < channels * width * height; index += channels)
-	{
-		if (index % (width * channels) == 0) {
-			row++;
-			column = 1;
-		}
-
-		int stepSize = 0;
-		processaFragmento(row, column, Vec2f(width, height) , inputColor, inputDistance, outputColor, outputDistance, stepSize);
-
-		column++;
-	}
+	delete[] pixels;
+	
+	return color;
 }
 
 void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points) 
 {
+	/*
+	points.clear();
+
+	Point2D* p1 = new Point2D();
+	p1->setPosition({ 100.0f, 100.0f });
+	p1->setColor({ 1.0f, 0.0f, 0.0f, 1.0f });
+	p1->setPointSize(1.0f);
+	p1->init();
+	points.push_back(p1);
+
+	Point2D* p2 = new Point2D();
+	p2->setPosition({ 400.0f, 400.0f });
+	p2->setColor({ 0.0f, 1.0f, 0.0f, 1.0f });
+	p2->setPointSize(1.0f);
+	p2->init();
+	points.push_back(p2);
+	*/
+
 	size_t width = RendererSettings::getInstance()->getWidth();
 	size_t height = RendererSettings::getInstance()->getHeight();
 	unsigned char* pixels = nullptr;
@@ -264,23 +204,34 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 		point->render(projectionViewMatrix);
 	
 	copyFromBufferToTexture(0, GL_BACK, inputColorTexture, GL_TEXTURE0, width, height, "color-init");
-	
+		
 	GLuint customFramebuffer = generateFramebuffer(width, height);
-	
+		
 	stepSize = 0.0f;
-	render(projectionViewMatrix);
-	
+	render(projectionViewMatrix);	
+
+	/*
+	ColorRGBAf pixelColor = getPixelFromBuffer(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, 100, 100);
+	ColorRGBAf seedX = getPixelFromBuffer(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, 100, 100);
+	ColorRGBAf seedY = getPixelFromBuffer(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, 100, 100);
+
+	float positionX = DecodeFloat(seedX.toVec4());
+	float positionY = DecodeFloat(seedY.toVec4());
+	*/
+		
 	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-0");
-	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputDistanceMap, GL_TEXTURE1, width, height, "distance-map-0");
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "seedX-0");
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "seedY-0");
 	
 	int contador = 1;
-	for (; stepCount > 0; stepCount--)
+	for (; stepCount >= 0; stepCount--)
 	{	
 		stepSize = powf(2, stepCount);
 		render(projectionViewMatrix);
 		
 		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-" + std::to_string(contador) );
-		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputDistanceMap, GL_TEXTURE1, width, height, "distance-map-" + std::to_string(contador) );
+		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "seedX-" + std::to_string(contador) );
+		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "seedY-" + std::to_string(contador) );
 		
 		contador++;
 	}
@@ -290,17 +241,19 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 
 void Panel::copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, std::string filename)
 {
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
-
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);	
 	glReadBuffer(buffer);
+
 	glActiveTexture(textureUnit);
 	glBindTexture(GL_TEXTURE_2D, texture);	
 	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, width, height, 0);
-
+	
+	/*
 	unsigned char* pixels = new unsigned char[4 * width*height];
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);;
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 	Framebuffer::saveImage("input-" + filename + ".png", pixels, width, height);
 	delete[] pixels;
+	*/
 }
 
 GLuint Panel::generateFramebuffer(size_t width, size_t height)
@@ -308,18 +261,31 @@ GLuint Panel::generateFramebuffer(size_t width, size_t height)
 	GLuint outputColorTexure;
 	glGenTextures(1, &outputColorTexure);
 	glBindTexture(GL_TEXTURE_2D, outputColorTexure);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 
-	GLuint outputDistanceMapTexture;
-	glGenTextures(1, &outputDistanceMapTexture);
-	glBindTexture(GL_TEXTURE_2D, outputDistanceMapTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	GLuint outputSeedX;
+	glGenTextures(1, &outputSeedX);
+	glBindTexture(GL_TEXTURE_2D, outputSeedX);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 
-	GLenum framebufferAttachments[2] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1 };
+	GLuint outputSeedY;
+	glGenTextures(1, &outputSeedY);
+	glBindTexture(GL_TEXTURE_2D, outputSeedY);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+
+	GLenum framebufferAttachments[3] = { GL_COLOR_ATTACHMENT0 , GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 
 	GLuint customFramebuffer;
 	glGenFramebuffers(1, &customFramebuffer);
@@ -329,10 +295,12 @@ GLuint Panel::generateFramebuffer(size_t width, size_t height)
 
 	glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH, width);
 	glFramebufferParameteri(GL_DRAW_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT, height);
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, outputColorTexure, 0);
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, outputDistanceMapTexture, 0);
 
-	glDrawBuffers(2, framebufferAttachments);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, outputColorTexure, 0);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, outputSeedX, 0);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, outputSeedY, 0);
+
+	glDrawBuffers(3, framebufferAttachments);
 
 	GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
@@ -341,14 +309,14 @@ GLuint Panel::generateFramebuffer(size_t width, size_t height)
 	return customFramebuffer;
 }
 
-void Panel::setUpImage(unsigned char* pixels, size_t width, size_t height)
+void Panel::setupInputColor(float* pixels, size_t width, size_t height)
 {
 	glGenTextures(1, &inputColorTexture);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inputColorTexture);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -359,22 +327,22 @@ void Panel::setUpImage(unsigned char* pixels, size_t width, size_t height)
 		height, //height,
 		0, //border
 		GL_RGBA, //format GL_RGB  or GL_RGBA (format of data read from textel file) (GL_RGB for *.bmp files and GL_RGBA for *.rgb files) GL_ALPHA GL_RGB GL_RGBA GL_LUMINANCE GL_LUMINANCE_ALPHA
-		GL_UNSIGNED_BYTE, //type , GL_FLOAT
+		GL_FLOAT, //type , GL_FLOAT
 		pixels); //const void *pixels
 }
 
 void Panel::setupDistanceMap(size_t width, size_t height)
 {
-	glGenTextures(1, &inputDistanceMap);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, inputDistanceMap);
+	float* emptyTexture = Framebuffer::emptyImage(width, height, ColorRGBAf(0.0f, 0.0f, 0.0f, 0.0f));
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glGenTextures(1, &inputSeedX);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, inputSeedX);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	unsigned char* emptyTexture = Framebuffer::emptyImage(width, height, ColorRGBAc( 0,0,0,0 ));
 
 	glTexImage2D(GL_TEXTURE_2D, //target
 		0, //level
@@ -383,17 +351,36 @@ void Panel::setupDistanceMap(size_t width, size_t height)
 		height, //height,
 		0, //border
 		GL_RGBA, //format GL_RGB  or GL_RGBA (format of data read from textel file) (GL_RGB for *.bmp files and GL_RGBA for *.rgb files) GL_ALPHA GL_RGB GL_RGBA GL_LUMINANCE GL_LUMINANCE_ALPHA
-		GL_UNSIGNED_BYTE, //type , GL_FLOAT
+		GL_FLOAT, //type , GL_FLOAT
+		emptyTexture); //const void *pixels
+
+	glGenTextures(1, &inputSeedY);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, inputSeedY);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	
+	glTexImage2D(GL_TEXTURE_2D, //target
+		0, //level
+		GL_RGBA, //GL_RGB, //internalFormat
+		width, //width,
+		height, //height,
+		0, //border
+		GL_RGBA, //format GL_RGB  or GL_RGBA (format of data read from textel file) (GL_RGB for *.bmp files and GL_RGBA for *.rgb files) GL_ALPHA GL_RGB GL_RGBA GL_LUMINANCE GL_LUMINANCE_ALPHA
+		GL_FLOAT, //type , GL_FLOAT
 		emptyTexture); //const void *pixels
 
 	delete[] emptyTexture;
 }
 
-void Panel::updateInputColorTexture(unsigned char* pixels, size_t width, size_t height, GLuint textureId)
+void Panel::updateTexture(float* pixels, size_t width, size_t height, GLuint textureId)
 {
 	glBindTexture(GL_TEXTURE_2D, textureId);
 
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT, pixels);
 
 	glTexImage2D(GL_TEXTURE_2D, //target
 		0, //level
@@ -402,7 +389,7 @@ void Panel::updateInputColorTexture(unsigned char* pixels, size_t width, size_t 
 		height, //height,
 		0, //border
 		GL_RGBA, //format GL_RGB  or GL_RGBA (format of data read from textel file) (GL_RGB for *.bmp files and GL_RGBA for *.rgb files) GL_ALPHA GL_RGB GL_RGBA GL_LUMINANCE GL_LUMINANCE_ALPHA
-		GL_UNSIGNED_BYTE, //type , GL_FLOAT
+		GL_FLOAT, //type , GL_FLOAT
 		pixels); //const void *pixels
 }
 
@@ -414,18 +401,8 @@ void Panel::setUpPositionAttribute()
 		GL_FALSE,
 		0,
 		0); //Specify that our coordinate data is going into attribute index 0(shaderAttribute), and contains three floats per vertex
-	glEnableVertexAttribArray(positionAttribute); //habilita atributo de coordenadas
-}
 
-void Panel::setUpTextureAttribute()
-{
-	glVertexAttribPointer(textureAttribute,
-		2,
-		GL_FLOAT,
-		GL_FALSE,
-		0,
-		(void*)sizeof(panelAttributes.position)); //Specify that our coordinate data is going into attribute index 0(shaderAttribute), and contains three floats per vertex
-	glEnableVertexAttribArray(textureAttribute); //habilita atributo de coordenadas
+	glEnableVertexAttribArray(positionAttribute); //habilita atributo de coordenadas
 }
 
 void Panel::initVBO()
@@ -439,13 +416,12 @@ void Panel::initVBO()
 	colorLocation = glGetUniformLocation(programShader, "Color");
 	panelSizeLocation = glGetUniformLocation(programShader, "panelSize");
 	stepSizeLocation = glGetUniformLocation(programShader, "stepSize");	
-	pixelSizeLocation = glGetUniformLocation(programShader, "pixelSize");
 	
 	positionAttribute = glGetAttribLocation(programShader, "Position");
-	textureAttribute = glGetAttribLocation(programShader, "Texture");
 
 	inputColorTextureLocation = glGetUniformLocation(programShader, "inputColorTexture");
-	inputImageMapLocation = glGetUniformLocation(programShader, "inputDistanceMap");
+	inputSeedXLocation = glGetUniformLocation(programShader, "inputSeedX");
+	inputSeedYLocation = glGetUniformLocation(programShader, "inputSeedY");
 
 	setUpPositionAttribute();
 }
@@ -456,23 +432,25 @@ void Panel::render(Mat4f projectionViewMatrix)
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
 
 	glUniform1i(inputColorTextureLocation, 0);
-	glUniform1i(inputImageMapLocation, 1);
+	glUniform1i(inputSeedXLocation, 1);
+	glUniform1i(inputSeedYLocation, 2);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inputColorTexture);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, inputDistanceMap);
+	glBindTexture(GL_TEXTURE_2D, inputSeedX);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, inputSeedY);
 		
 	glUniformMatrix4fv(projectionViewLocation, 1, GL_FALSE, projectionViewMatrix);
 	glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, modelView);
 	glUniform4f(colorLocation, color->Red, color->Green, color->Blue, color->Alpha);
 	glUniform2f(panelSizeLocation, getWidth(), getHeight() );
 	glUniform1f(stepSizeLocation, stepSize);
-	glUniform2f(pixelSizeLocation, 1.0f / getWidth(), 1.0f / getHeight());
 	
 	setUpPositionAttribute();
-	setUpTextureAttribute();
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
