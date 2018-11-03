@@ -108,15 +108,15 @@ void Panel::init()
 						"vec4 neighborSeedCoordinateXAsColor = texture(inputSeedX, neighborCoordinate);										\n"
 						"vec4 neighborSeedCoordinateYAsColor = texture(inputSeedY, neighborCoordinate);										\n"
 						"vec2 neighborSeedCoordinate = vec2( DecodeFloat(neighborSeedCoordinateXAsColor) , DecodeFloat(neighborSeedCoordinateYAsColor) );	\n"
-						
+								
 						"float distanceFromNeighborSeed = distance(neighborSeedCoordinate, textureCoordinate);			\n"
-				
+
 						"if (distanceFromNeighborSeed < nearestDistanceFromSeed) {										\n"
 							"outputColor			 = neighborColor;													\n"
 							"outputSeedX			 = neighborSeedCoordinateXAsColor;									\n"
 							"outputSeedY			 = neighborSeedCoordinateYAsColor;									\n"
-							"nearestDistanceFromSeed = distanceFromNeighborSeed;										\n"							
-						"}\n"						
+							"nearestDistanceFromSeed = distanceFromNeighborSeed;										\n"
+						"}\n"
 
 					"} \n"
 				"} \n"
@@ -141,8 +141,54 @@ void Panel::init()
 			"}																											\n"
 
 		"} \n";
+
+	string fragmentShaderSourceAxis = "#version 300 es \n"
+		"precision highp float;	\n"
+		"precision highp int;	\n"
+
+		"uniform sampler2D inputColorTexture; \n"
+		"uniform sampler2D inputSeedX; \n"
+		"uniform sampler2D inputSeedY; \n"
+
+		"uniform vec2 panelSize; \n"
+		"uniform float stepSize; \n"
+
+		"layout(location = 0) out vec4 outputColor; \n"
+		"layout(location = 1) out vec4 outputSeedX; \n"
+		"layout(location = 2) out vec4 outputSeedY; \n"
+		
+		"void main() \n"
+		"{ \n"
+			"const vec4 blackColor	  = vec4( 0.0, 0.0, 0.0, 1.0 );											\n"
+			"vec2  pixelSize		  = 1.0 / panelSize.xy;													\n"
+			"vec2  textureCoordinate  = gl_FragCoord.xy / panelSize.xy;										\n"
+			"vec4  color			  = texture(inputColorTexture, textureCoordinate);						\n"
+			
+			"for (int x = -1; x <= 1; ++x) {																	\n"
+				"for (int y = -1; y <= 1; ++y) {																\n"
+
+					"vec2 neighborCoordinate =  textureCoordinate + (vec2(y,x) * pixelSize);			\n"
+					"vec4 neighborColor = texture(inputColorTexture, neighborCoordinate);						\n"
+
+					"bool outOfTextureRange = neighborCoordinate.x < 0.0 || neighborCoordinate.x > 1.0 || neighborCoordinate.y < 0.0  || neighborCoordinate.y > 1.0; \n"
+					"if ( outOfTextureRange )									\n"
+						"continue;												\n"
+
+					"if( neighborColor == blackColor ) \n"
+						"continue; \n"
+		
+					"if (color != neighborColor)										\n"
+						"color = blackColor;												\n"
+
+				"} \n"
+			"} \n"
+
+			"outputColor = color; \n"
+		"} \n";
 	
 	programShader = Shader::loadShaderProgram(vertexShaderSource.c_str(), fragmentShaderSource.c_str());
+	programShaderAxis = Shader::loadShaderProgram(vertexShaderSource.c_str(), fragmentShaderSourceAxis.c_str());
+	currentProgramShader = programShader;
 
 	initVBO();
 }
@@ -169,6 +215,29 @@ ColorRGBAf getPixelFromBuffer(GLuint framebuffer, GLenum buffer, GLuint texture,
 	delete[] pixels;
 	
 	return color;
+}
+
+void Panel::releaseVoronoi() 
+{
+	glDeleteFramebuffers(1, &customFramebuffer);
+}
+
+void Panel::makeVoronoiAxis(Mat4f projectionViewMatrix, std::vector<Point2D*> points) 
+{
+	size_t width = RendererSettings::getInstance()->getWidth();
+	size_t height = RendererSettings::getInstance()->getHeight();
+
+	makeVoronoi(projectionViewMatrix, points);
+
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "finalColor");
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "finalSeedX");
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "finalSeedY");
+
+	currentProgramShader = programShaderAxis;
+	initVBO();
+	render(projectionViewMatrix);
+
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "finalColor2");
 }
 
 void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points) 
@@ -205,7 +274,7 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 	
 	copyFromBufferToTexture(0, GL_BACK, inputColorTexture, GL_TEXTURE0, width, height, "color-init");
 		
-	GLuint customFramebuffer = generateFramebuffer(width, height);
+	customFramebuffer = generateFramebuffer(width, height);
 		
 	stepSize = 0.0f;
 	render(projectionViewMatrix);	
@@ -218,25 +287,19 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 	float positionX = DecodeFloat(seedX.toVec4());
 	float positionY = DecodeFloat(seedY.toVec4());
 	*/
-		
-	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-0");
-	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "seedX-0");
-	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "seedY-0");
 	
-	int contador = 1;
+	int contador = 0;
 	for (; stepCount >= 0; stepCount--)
 	{	
+		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-" + std::to_string(contador));
+		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "seedX-" + std::to_string(contador));
+		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "seedY-" + std::to_string(contador));
+
 		stepSize = powf(2, stepCount);
 		render(projectionViewMatrix);
 		
-		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-" + std::to_string(contador) );
-		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "seedX-" + std::to_string(contador) );
-		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "seedY-" + std::to_string(contador) );
-		
 		contador++;
 	}
-
-	glDeleteFramebuffers(1, &customFramebuffer);
 }
 
 void Panel::copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, std::string filename)
@@ -248,12 +311,10 @@ void Panel::copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint te
 	glBindTexture(GL_TEXTURE_2D, texture);	
 	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, width, height, 0);
 	
-	/*
 	unsigned char* pixels = new unsigned char[4 * width*height];
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 	Framebuffer::saveImage("input-" + filename + ".png", pixels, width, height);
 	delete[] pixels;
-	*/
 }
 
 GLuint Panel::generateFramebuffer(size_t width, size_t height)
@@ -411,30 +472,30 @@ void Panel::initVBO()
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject); //associa o bufffer ao ponteiro
 	glBufferData(GL_ARRAY_BUFFER, sizeof(PanelShaderAttributes), &panelAttributes, GL_STATIC_DRAW);  //insere os dados no buffer para usar glDraw*
 	
-	projectionViewLocation = glGetUniformLocation(programShader, "projectionView");
-	modelViewLocation = glGetUniformLocation(programShader, "model");	
-	colorLocation = glGetUniformLocation(programShader, "Color");
-	panelSizeLocation = glGetUniformLocation(programShader, "panelSize");
-	stepSizeLocation = glGetUniformLocation(programShader, "stepSize");	
+	projectionViewLocation = glGetUniformLocation(currentProgramShader, "projectionView");
+	modelViewLocation = glGetUniformLocation(currentProgramShader, "model");
+	colorLocation = glGetUniformLocation(currentProgramShader, "Color");
+	panelSizeLocation = glGetUniformLocation(currentProgramShader, "panelSize");
+	stepSizeLocation = glGetUniformLocation(currentProgramShader, "stepSize");
 	
-	positionAttribute = glGetAttribLocation(programShader, "Position");
+	positionAttribute = glGetAttribLocation(currentProgramShader, "Position");
 
-	inputColorTextureLocation = glGetUniformLocation(programShader, "inputColorTexture");
-	inputSeedXLocation = glGetUniformLocation(programShader, "inputSeedX");
-	inputSeedYLocation = glGetUniformLocation(programShader, "inputSeedY");
+	inputColorTextureLocation = glGetUniformLocation(currentProgramShader, "inputColorTexture");
+	inputSeedXLocation = glGetUniformLocation(currentProgramShader, "inputSeedX");
+	inputSeedYLocation = glGetUniformLocation(currentProgramShader, "inputSeedY");
 
 	setUpPositionAttribute();
 }
 
 void Panel::render(Mat4f projectionViewMatrix)
 {
-	glUseProgram(programShader);
+	glUseProgram(currentProgramShader);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferObject);
-
+	
 	glUniform1i(inputColorTextureLocation, 0);
 	glUniform1i(inputSeedXLocation, 1);
 	glUniform1i(inputSeedYLocation, 2);
-
+	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, inputColorTexture);
 
@@ -443,7 +504,7 @@ void Panel::render(Mat4f projectionViewMatrix)
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, inputSeedY);
-		
+			
 	glUniformMatrix4fv(projectionViewLocation, 1, GL_FALSE, projectionViewMatrix);
 	glUniformMatrix4fv(modelViewLocation, 1, GL_FALSE, modelView);
 	glUniform4f(colorLocation, color->Red, color->Green, color->Blue, color->Alpha);
@@ -451,7 +512,7 @@ void Panel::render(Mat4f projectionViewMatrix)
 	glUniform1f(stepSizeLocation, stepSize);
 	
 	setUpPositionAttribute();
-
+	
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	Log::glErrors(__FILE__, __LINE__);

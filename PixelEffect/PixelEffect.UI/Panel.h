@@ -32,7 +32,12 @@ private:
 			1.0f, 1.0f, //top-right	
 		}
 	};
+
+	GLuint customFramebuffer;
 	
+	GLuint currentProgramShader;
+	GLuint programShaderAxis;
+
 	GLint positionAttribute;
 
 	GLuint inputColorTexture;
@@ -62,6 +67,8 @@ public:
 	void updateTexture(float* pixels, size_t width, size_t height, GLuint textureId);
 
 	void makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points);
+	void makeVoronoiAxis(Mat4f projectionViewMatrix, std::vector<Point2D*> points);
+	void releaseVoronoi();
 	
 	void init();
 

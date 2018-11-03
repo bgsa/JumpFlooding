@@ -25,6 +25,7 @@ std::vector<Point2D*> points;
 void Renderer::onKeyDown(int keyCode) 
 {
 	bool enterPressed = keyCode == 257 || keyCode == 335;
+	bool mPressed = keyCode == 77;
 	bool sPressed = keyCode == 83;
 
 	if (sPressed) 
@@ -33,7 +34,8 @@ void Renderer::onKeyDown(int keyCode)
 		return;
 	}
 
-	if ( ! enterPressed )
+
+	if ( ! enterPressed && ! mPressed )
 		return;
 
 	float width = (float) RendererSettings::getInstance()->getWidth();
@@ -41,7 +43,13 @@ void Renderer::onKeyDown(int keyCode)
 	Mat4f projectionViewMatrix = camera.getHUDProjectionMatrix(width, height);
 
 	//panel->makeVoronoiCPU(projectionViewMatrix, points);
-	panel->makeVoronoi(projectionViewMatrix, points);
+
+	if (enterPressed)
+		panel->makeVoronoi(projectionViewMatrix, points);
+	else
+		panel->makeVoronoiAxis(projectionViewMatrix, points);
+
+	panel->releaseVoronoi();
 
 	//clear points
 	for (size_t i = 0; i < points.size(); i++)
