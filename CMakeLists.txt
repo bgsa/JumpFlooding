@@ -115,11 +115,12 @@ if (UNIX)
 
 	set_target_properties(${PROJECT_NAME}LinuxApp PROPERTIES ENABLE_EXPORTS ON)
 
-	target_link_libraries(${PROJECT_NAME}LinuxApp
-		${OPENGL_LIBRARY}
+	target_link_libraries(${PROJECT_NAME}LinuxApp		
 		${GLFW_LIBRARIES}
 		${GLEW_LIBRARIES}
-		${PROJECT_NAME}LinuxLib)
+		${PROJECT_NAME}LinuxLib
+		${OPENGL_LIBRARY}
+		)
 endif()
 
 MESSAGE(STATUS "COMPLETED !" )
