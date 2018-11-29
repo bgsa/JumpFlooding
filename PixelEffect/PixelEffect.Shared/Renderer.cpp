@@ -25,6 +25,7 @@ std::vector<Point2D*> points;
 void Renderer::onKeyDown(int keyCode) 
 {
 	bool enterPressed = keyCode == 257 || keyCode == 335;
+	bool mPressed = keyCode == 77;
 	bool sPressed = keyCode == 83;
 
 	if (sPressed) 
@@ -33,7 +34,8 @@ void Renderer::onKeyDown(int keyCode)
 		return;
 	}
 
-	if ( ! enterPressed )
+
+	if ( ! enterPressed && ! mPressed )
 		return;
 
 	float width = (float) RendererSettings::getInstance()->getWidth();
@@ -41,7 +43,13 @@ void Renderer::onKeyDown(int keyCode)
 	Mat4f projectionViewMatrix = camera.getHUDProjectionMatrix(width, height);
 
 	//panel->makeVoronoiCPU(projectionViewMatrix, points);
-	panel->makeVoronoi(projectionViewMatrix, points);
+
+	if (enterPressed)
+		panel->makeVoronoi(projectionViewMatrix, points);
+	else
+		panel->makeVoronoiAxis(projectionViewMatrix, points);
+
+	panel->releaseVoronoi();
 
 	//clear points
 	for (size_t i = 0; i < points.size(); i++)
@@ -56,19 +64,18 @@ void Renderer::onMouseDown(MouseEvent e)
 {
 	if (e.button != MouseButton::LEFT)
 		return;
-	
+
 	OpenML::Randomizer<int> colorRandomizer(0, 255);
 	int red = colorRandomizer.rand();
 	int green = colorRandomizer.rand();
 	int blue = colorRandomizer.rand();
-	//float blue = 0.0f;
+	//int blue = 0.0f;
 
 	Point2D* point = new Point2D;
 	point->setPosition(e.currentPosition);
-	//point->setPointSize(30.0f);
-	point->setPointSize(16.0f);
+	point->setPointSize(30.0f);
 	//point->setPointSize(1.0f);
-	point->setColor({ red/255.0f, green/255.0f, blue / 255.0f, 1.0f });
+	point->setColor({ red/255.0f , green/255.0f, blue/255.0f, 1.0f });
 	point->init();
 	points.push_back(point);
 
@@ -88,13 +95,13 @@ void Renderer::start()
 {	
 	size_t width = RendererSettings::getInstance()->getWidth();
 	size_t height = RendererSettings::getInstance()->getHeight();
-	unsigned char* data = Framebuffer::emptyImage(width, height, {255, 255, 255, 255});
+	float* data = Framebuffer::emptyImage(width, height, ColorRGBAf(1.0f, 1.0f, 1.0f, 1.0f) );
 
 	panel->setColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 	panel->setWidth((float) RendererSettings::getInstance()->getWidth());
 	panel->setHeight((float) RendererSettings::getInstance()->getHeight());
-	panel->setUpImage(data, width, height);
-	//panel->setupDistanceMap(width, height);
+	panel->setupInputColor(data, width, height);
+	panel->setupDistanceMap(width, height);
 	panel->init();
 
 	addGraphicObject(panel);

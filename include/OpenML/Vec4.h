@@ -222,6 +222,20 @@ public:
 	}
 
 	/// <summary>
+	/// Get the fractionals values from the vector (component-wise)
+	/// <summary>
+	API_INTERFACE
+	Vec4<T> fractional()
+	{
+		return Vec4<T> {
+			T(values[0] - floor(values[0])),
+			T(values[1] - floor(values[1])),
+			T(values[2] - floor(values[2])),
+			T(values[3] - floor(values[3]))
+		};
+	}
+
+	/// <summary>
 	/// Normalize the current vector - change to unit vector
 	/// <summary>
 	API_INTERFACE
@@ -446,6 +460,8 @@ public:
 	Vec3<T> toVec3() {
 		return Vec3<T> { values[0], values[1], values[2] };
 	}
+
+	
 
 };
 

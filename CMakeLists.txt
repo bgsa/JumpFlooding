@@ -6,17 +6,24 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+if (UNIX)
+    set(GLEW_INCLUDE_DIR "/usr/local/Cellar/glew/2.1.0/include/GL")
+    set(GLEW_LIBRARY     "/usr/local/Cellar/glew/2.1.0/lib/libGLEW.2.1.0.dylib")
+    
+    set(GLFW_INCLUDE_DIR "/usr/local/Cellar/glfw/3.2.1/lib/include")
+    set(GLFW_LIBRARIES   "/usr/local/Cellar/glfw/3.2.1/lib/libglfw.3.2.dylib")
 
-set(CMAKE_CXX_FLAGS "-lGLEW -lGL")
+#    add_subdirectory( "/usr/local/Cellar/glfw/lib" )
+endif()
 
 find_package(OpenGL   REQUIRED)
 find_package(GLEW     REQUIRED)
-#find_package(GLFW3     REQUIRED)
+#find_package(GLFW     REQUIRED)
 
 if (UNIX)
-    find_package(PkgConfig REQUIRED)
+    find_package(PkgConfig REQUIRED)  # find GLFW library
     pkg_search_module(GLFW REQUIRED glfw3)
 endif()
 
@@ -60,7 +67,8 @@ INCLUDE_DIRECTORIES(
 FILE(GLOB SOURCES
 	"${SOURCE_DIR}/PixelEffect.Framework/*.cpp"
 	"${SOURCE_DIR}/PixelEffect.Shared/*.cpp"
-	"${SOURCE_DIR}/PixelEffect.UI/*.cpp")
+	"${SOURCE_DIR}/PixelEffect.UI/*.cpp"
+	"${INCLUDE_DIR}/XMLPP/*.hpp")
 
 FILE(GLOB SOURCES_WINDOWS_LIB "${SOURCE_DIR}/PixelEffect.Windows/*.cpp")
 
@@ -104,7 +112,10 @@ if (WIN32)
 		glfw3.lib
 		glew32s.lib
 		${PROJECT_NAME}WindowsLib)
+
 endif()
+
+
 
 if (UNIX)
 	ADD_LIBRARY(${PROJECT_NAME}LinuxLib STATIC ${SOURCES_FILES})
@@ -117,7 +128,8 @@ if (UNIX)
 
 	target_link_libraries(${PROJECT_NAME}LinuxApp
 		${OPENGL_LIBRARY}
-		${GLFW_LIBRARIES}
+#		${GLFW_LIBRARIES}
+"/usr/local/Cellar/glfw/3.2.1/lib/libglfw.3.2.dylib"
 		${GLEW_LIBRARIES}
 		${PROJECT_NAME}LinuxLib)
 endif()

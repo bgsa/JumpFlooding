@@ -20,6 +20,7 @@ private:
 	
 	struct PanelShaderAttributes {
 		GLfloat position[8];
+		GLfloat texture[8];
 	};
 
 	PanelShaderAttributes panelAttributes = PanelShaderAttributes
@@ -31,39 +32,44 @@ private:
 			1.0f, 1.0f, //top-right	
 		}
 	};
+
+	GLuint customFramebuffer;
 	
+	GLuint currentProgramShader;
+	GLuint programShaderAxis;
+
 	GLint positionAttribute;
 
 	GLuint inputColorTexture;
-	GLuint inputColorTextureLocation;
+	GLuint inputSeedX;
+	GLuint inputSeedY;
 
-	GLuint inputDistanceMap;
-	GLuint inputImageMapLocation;
+	GLuint inputColorTextureLocation;
+	GLuint inputSeedXLocation;
+	GLuint inputSeedYLocation;
 
 	GLuint panelSizeLocation;
 	GLuint stepSizeLocation;
 	
 	void initVBO();
 	void setUpPositionAttribute();
-	
-	void copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, std::string filename);
 
-	float stepSize = 0.0f;
+	float stepSize = 0.0;
+
+	GLuint generateFramebuffer(size_t width, size_t height);
+	void copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, std::string filename);
 		
 public:
 	   	
-	void setUpImage(unsigned char* pixels, size_t width, size_t height);
-	void updateTexture(unsigned char* pixels, size_t width, size_t height, GLuint textureId);
-	
+	void setupInputColor(float* pixels, size_t width, size_t height);
+	void setupDistanceMap(size_t width, size_t height);
+
+	void updateTexture(float* pixels, size_t width, size_t height, GLuint textureId);
+
 	void makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points);
-	void makeVoronoiCPU(Mat4f projectionViewMatrix, std::vector<Point2D*> points);
-
-	void setPositionAttributes(GLfloat* position)
-	{
-		for (size_t i = 0; i < 8; i++)
-			panelAttributes.position[i] = position[i];
-	}
-
+	void makeVoronoiAxis(Mat4f projectionViewMatrix, std::vector<Point2D*> points);
+	void releaseVoronoi();
+	
 	void init();
 
 	void render(Mat4f projectionViewMatrix);
