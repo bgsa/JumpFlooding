@@ -108,7 +108,7 @@ void Renderer::start()
 
 	delete[] data;
 
-#ifdef WINDOWS
+//#ifdef WINDOWS
 	while (isRunning)
 	{
 		update();
@@ -116,7 +116,7 @@ void Renderer::start()
 
 		Log::glErrors(__FILE__, __LINE__);
 	}
-#endif
+//#endif
 }
 
 void Renderer::addGraphicObject(GraphicObject* graphicObject)
@@ -182,8 +182,8 @@ void Renderer::init(DisplayDevice* displayDevice)
 
 	timer.start();
 
-	//glEnable(GL_CULL_FACE); //elimina os vÈrtices que est„o sendo renderizados atr·s de outros vÈrtices. Ex.: modelo 3D
-	glEnable(GL_DEPTH_TEST); //elimina os vÈrtices que sobrepoem outros vÈrtices quando est„o no mesmo eixo Z.
+	//glEnable(GL_CULL_FACE); //elimina os v√©rtices que est√£o sendo renderizados atr√°s de outros v√©rtices. Ex.: modelo 3D
+	glEnable(GL_DEPTH_TEST); //elimina os v√©rtices que sobrepoem outros v√©rtices quando est√£o no mesmo eixo Z.
 	glEnable(GL_BLEND);									  //enable alpha color
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);    //enable alpha color
 

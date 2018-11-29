@@ -67,8 +67,7 @@ INCLUDE_DIRECTORIES(
 FILE(GLOB SOURCES
 	"${SOURCE_DIR}/PixelEffect.Framework/*.cpp"
 	"${SOURCE_DIR}/PixelEffect.Shared/*.cpp"
-	"${SOURCE_DIR}/PixelEffect.UI/*.cpp"
-	"${INCLUDE_DIR}/XMLPP/*.hpp")
+	"${SOURCE_DIR}/PixelEffect.UI/*.cpp")
 
 FILE(GLOB SOURCES_WINDOWS_LIB "${SOURCE_DIR}/PixelEffect.Windows/*.cpp")
 
@@ -126,12 +125,12 @@ if (UNIX)
 
 	set_target_properties(${PROJECT_NAME}LinuxApp PROPERTIES ENABLE_EXPORTS ON)
 
-	target_link_libraries(${PROJECT_NAME}LinuxApp
-		${OPENGL_LIBRARY}
-#		${GLFW_LIBRARIES}
-"/usr/local/Cellar/glfw/3.2.1/lib/libglfw.3.2.dylib"
+
+	target_link_libraries(${PROJECT_NAME}LinuxApp		
 		${GLEW_LIBRARIES}
-		${PROJECT_NAME}LinuxLib)
+
+		${OPENGL_LIBRARY}
+		)
 endif()
 
 MESSAGE(STATUS "COMPLETED !" )
