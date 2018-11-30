@@ -1,38 +1,5 @@
 #include "Panel.h"
 
-Vec2f pack2(float value)
-{
-	int ivalue = int(value * 256.0f * 256.0f);
-	int ix = ivalue % 256;
-	int iy = ivalue / 256;
-	return Vec2f(float(ix) / 255.0f, float(iy) / 255.0f);
-}
-
-float unpack2(Vec2f v)
-{
-	int ix = int(round(v[0] * 255.0f));
-	int iy = int(round(v[1] * 255.0f));
-	int ivalue = ix + iy * 256.0f;
-	return float(ivalue) / 256.0f / 256.0f;
-}
-
-Vec4f EncodeFloat(float v)
-{
-	Vec4f kEncodeMul = Vec4f(1.0, 255.0, 65025.0, 160581375.0);
-	float kEncodeBit = 1.0 / 255.0;
-	Vec4f enc = kEncodeMul * v;
-	enc = enc.fractional();
-	enc = enc - (Vec4f(enc[1] * kEncodeBit, enc[2] * kEncodeBit, enc[3] * kEncodeBit, enc[3] * kEncodeBit));	
-
-	return enc;
-}
-
-float DecodeFloat(Vec4f enc)
-{
-	Vec4f kDecodeDot = Vec4f(1.0f, 1.0f / 255.0f, 1.0f / 65025.0f, 1.0f / 160581375.0f);
-	return enc.dot(kDecodeDot);
-}
-
 void Panel::init()
 {
 	string vertexShaderSource = "#version 300 es \n"
@@ -122,7 +89,7 @@ void Panel::init()
 				"} \n"
 
 			"} else	{																									\n"				
-				"bool isSeed = texture(inputColorTexture, textureCoordinate).w == 1.0;									\n"
+				"bool isSeed = texture(inputColorTexture, textureCoordinate) != vec4(1.0);								\n"
 
 				"if ( isSeed ) {																						\n"
 					"outputColor = texture(inputColorTexture, textureCoordinate);										\n"
@@ -242,51 +209,27 @@ void Panel::makeVoronoiAxis(Mat4f projectionViewMatrix, std::vector<Point2D*> po
 
 void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points) 
 {
-	/*
-	points.clear();
-
-	Point2D* p1 = new Point2D();
-	p1->setPosition({ 100.0f, 100.0f });
-	p1->setColor({ 1.0f, 0.0f, 0.0f, 1.0f });
-	p1->setPointSize(1.0f);
-	p1->init();
-	points.push_back(p1);
-
-	Point2D* p2 = new Point2D();
-	p2->setPosition({ 400.0f, 400.0f });
-	p2->setColor({ 0.0f, 1.0f, 0.0f, 1.0f });
-	p2->setPointSize(1.0f);
-	p2->init();
-	points.push_back(p2);
-	*/
-
 	size_t width = RendererSettings::getInstance()->getWidth();
 	size_t height = RendererSettings::getInstance()->getHeight();
 	unsigned char* pixels = nullptr;
 	int stepCount = (int)log2f(float(width));
-	
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	glDisable(GL_PROGRAM_POINT_SIZE);
 
-	for (Point2D* point : points)
-		point->render(projectionViewMatrix);
+	// TODO: PROXIMOS PASSOS:
+	// ao apertar "D", permitir desenhar na tela arrastando mouse
+	// ao apertar enter, fazer o voronoi e caso um pixel conflitar com outro quando o stepCount == 1, entao esse pixel está no medial axis !!
 	
-	copyFromBufferToTexture(0, GL_BACK, inputColorTexture, GL_TEXTURE0, width, height, "color-init");
-		
+	/* glReadBuffer(GL_FRONT);	glDrawBuffer(GL_BACK);   // copy from buffer
+	glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST); 	*/
+
+	copyFromBufferToTexture(0, GL_FRONT, inputColorTexture, GL_TEXTURE0, width, height, "color-init");
+			
 	customFramebuffer = generateFramebuffer(width, height);
-		
+
 	stepSize = 0.0f;
-	render(projectionViewMatrix);	
-
-	/*
-	ColorRGBAf pixelColor = getPixelFromBuffer(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, 100, 100);
-	ColorRGBAf seedX = getPixelFromBuffer(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, 100, 100);
-	ColorRGBAf seedY = getPixelFromBuffer(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, 100, 100);
-
-	float positionX = DecodeFloat(seedX.toVec4());
-	float positionY = DecodeFloat(seedY.toVec4());
-	*/
+	render(projectionViewMatrix);
 	
 	int contador = 0;
 	for (; stepCount >= 0; stepCount--)

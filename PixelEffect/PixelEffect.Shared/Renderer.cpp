@@ -13,6 +13,7 @@
 #include "OpenML/Rectangle2D.h"
 #include "Panel.h"
 #include "Framebuffer.h"
+#include "Painter.h"
 
 bool isRunning = true;
 
@@ -20,30 +21,45 @@ Timer timer;
 Camera camera;
 
 Panel* panel = new Panel;
+Painter* painter = new Painter;
 std::vector<Point2D*> points;
+int homeworkMode = 0; // 1 - voronoi; 2 - pintura
 
 void Renderer::onKeyDown(int keyCode) 
 {
 	bool enterPressed = keyCode == 257 || keyCode == 335;
 	bool mPressed = keyCode == 77;
 	bool sPressed = keyCode == 83;
+	bool pPressed = keyCode == 80;
+	bool vPressed = keyCode == 86;
 
 	if (sPressed) 
 	{
-		Framebuffer::saveFrambebuffer("teste.bmp", GL_BACK);
+		Framebuffer::saveFrambebuffer("print.bmp", GL_BACK);
 		return;
 	}
 
+	if (vPressed)
+	{
+		addGraphicObject(panel);
+		homeworkMode = 1;
+		return;
+	}
 
+	if (pPressed) 
+	{
+		addGraphicObject(painter);
+		homeworkMode = 2;
+		return;
+	}
+	
 	if ( ! enterPressed && ! mPressed )
 		return;
 
 	float width = (float) RendererSettings::getInstance()->getWidth();
 	float height = (float) RendererSettings::getInstance()->getHeight();
 	Mat4f projectionViewMatrix = camera.getHUDProjectionMatrix(width, height);
-
-	//panel->makeVoronoiCPU(projectionViewMatrix, points);
-
+	
 	if (enterPressed)
 		panel->makeVoronoi(projectionViewMatrix, points);
 	else
@@ -65,21 +81,26 @@ void Renderer::onMouseDown(MouseEvent e)
 	if (e.button != MouseButton::LEFT)
 		return;
 
-	OpenML::Randomizer<int> colorRandomizer(0, 255);
-	int red = colorRandomizer.rand();
-	int green = colorRandomizer.rand();
-	int blue = colorRandomizer.rand();
-	//int blue = 0.0f;
+	bool isVoronoiMode = homeworkMode == 1;
 
-	Point2D* point = new Point2D;
-	point->setPosition(e.currentPosition);
-	point->setPointSize(30.0f);
-	//point->setPointSize(1.0f);
-	point->setColor({ red/255.0f , green/255.0f, blue/255.0f, 1.0f });
-	point->init();
-	points.push_back(point);
+	if (isVoronoiMode)
+	{
+		OpenML::Randomizer<int> colorRandomizer(0, 255);
+		int red = colorRandomizer.rand();
+		int green = colorRandomizer.rand();
+		int blue = colorRandomizer.rand();
+		//int blue = 0.0f;
 
-	addGraphicObject(point);
+		Point2D* point = new Point2D;
+		point->setPosition(e.currentPosition);
+		point->setPointSize(30.0f);
+		//point->setPointSize(1.0f);
+		point->setColor({ red / 255.0f , green / 255.0f, blue / 255.0f, 1.0f });
+		point->init();
+		points.push_back(point);
+
+		addGraphicObject(point);
+	}
 };
 
 void Renderer::onMouseMove(MouseEvent e)
@@ -95,20 +116,24 @@ void Renderer::start()
 {	
 	size_t width = RendererSettings::getInstance()->getWidth();
 	size_t height = RendererSettings::getInstance()->getHeight();
-	float* data = Framebuffer::emptyImage(width, height, ColorRGBAf(1.0f, 1.0f, 1.0f, 1.0f) );
 
+	float* data = Framebuffer::emptyImage(width, height, ColorRGBAf(1.0f, 1.0f, 1.0f, 1.0f) );
 	panel->setColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 	panel->setWidth((float) RendererSettings::getInstance()->getWidth());
 	panel->setHeight((float) RendererSettings::getInstance()->getHeight());
 	panel->setupInputColor(data, width, height);
 	panel->setupDistanceMap(width, height);
 	panel->init();
-
-	addGraphicObject(panel);
-
 	delete[] data;
 
-//#ifdef WINDOWS
+	float* dataPainter = Framebuffer::emptyImage(width, height, ColorRGBAf(1.0f, 1.0f, 1.0f, 1.0f));
+	painter->setColor({ 0.0f, 0.0f, 0.0f, 0.0f });
+	painter->setWidth((float)RendererSettings::getInstance()->getWidth());
+	painter->setHeight((float)RendererSettings::getInstance()->getHeight());
+	painter->setupInputColor(dataPainter, width, height);
+	painter->init();
+	delete[] dataPainter;
+	
 	while (isRunning)
 	{
 		update();
@@ -116,7 +141,6 @@ void Renderer::start()
 
 		Log::glErrors(__FILE__, __LINE__);
 	}
-//#endif
 }
 
 void Renderer::addGraphicObject(GraphicObject* graphicObject)
@@ -165,6 +189,12 @@ void Renderer::resize(int width, int height)
 
 	RendererSettings::getInstance()->setWidth(width);
 	RendererSettings::getInstance()->setHeight(height);
+
+	panel->setWidth((float)width);
+	panel->setHeight((float)height);
+
+	painter->setWidth((float)width);
+	painter->setHeight((float)height);
 }
 
 void Renderer::init(DisplayDevice* displayDevice)
@@ -184,8 +214,8 @@ void Renderer::init(DisplayDevice* displayDevice)
 
 	//glEnable(GL_CULL_FACE); //elimina os vértices que estão sendo renderizados atrás de outros vértices. Ex.: modelo 3D
 	glEnable(GL_DEPTH_TEST); //elimina os vértices que sobrepoem outros vértices quando estão no mesmo eixo Z.
-	glEnable(GL_BLEND);									  //enable alpha color
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);    //enable alpha color
+	//glEnable(GL_BLEND);									  //enable alpha color
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);    //enable alpha color
 
 	Vec3f cameraPosition = { 0.0f, 5.0f, 10.0f };
 	Vec3f cameraTarget = { 0.0f, 3.0f, 0.0f };
