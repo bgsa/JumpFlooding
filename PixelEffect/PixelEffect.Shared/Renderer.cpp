@@ -60,20 +60,28 @@ void Renderer::onKeyDown(int keyCode)
 	float height = (float) RendererSettings::getInstance()->getHeight();
 	Mat4f projectionViewMatrix = camera.getHUDProjectionMatrix(width, height);
 	
-	if (enterPressed)
-		panel->makeVoronoi(projectionViewMatrix, points);
-	else
-		panel->makeVoronoiAxis(projectionViewMatrix, points);
-
-	panel->releaseVoronoi();
-
-	//clear points
-	for (size_t i = 0; i < points.size(); i++)
+	if (homeworkMode == 1) 
 	{
-		removeGraphicObject(points[i]);
-		delete points[i];
+		if (enterPressed)
+			panel->makeVoronoi(projectionViewMatrix, points);
+		else
+			panel->makeVoronoiAxis(projectionViewMatrix, points);
+
+		panel->releaseVoronoi();
+
+		//clear points
+		for (size_t i = 0; i < points.size(); i++)
+		{
+			removeGraphicObject(points[i]);
+			delete points[i];
+		}
+		points.clear();
 	}
-	points.clear();
+	else 
+	{
+		painter->makeVoronoi(projectionViewMatrix);
+		painter->releaseVoronoi();
+	}
 }
 
 void Renderer::onMouseDown(MouseEvent e)
@@ -214,8 +222,8 @@ void Renderer::init(DisplayDevice* displayDevice)
 
 	//glEnable(GL_CULL_FACE); //elimina os vértices que estão sendo renderizados atrás de outros vértices. Ex.: modelo 3D
 	glEnable(GL_DEPTH_TEST); //elimina os vértices que sobrepoem outros vértices quando estão no mesmo eixo Z.
-	//glEnable(GL_BLEND);									  //enable alpha color
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);    //enable alpha color
+	glEnable(GL_BLEND);									  //enable alpha color
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);    //enable alpha color
 
 	Vec3f cameraPosition = { 0.0f, 5.0f, 10.0f };
 	Vec3f cameraTarget = { 0.0f, 3.0f, 0.0f };

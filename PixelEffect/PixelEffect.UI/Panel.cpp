@@ -217,10 +217,6 @@ void Panel::makeVoronoi(Mat4f projectionViewMatrix, std::vector<Point2D*> points
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-	// TODO: PROXIMOS PASSOS:
-	// ao apertar "D", permitir desenhar na tela arrastando mouse
-	// ao apertar enter, fazer o voronoi e caso um pixel conflitar com outro quando o stepCount == 1, entao esse pixel está no medial axis !!
-	
 	/* glReadBuffer(GL_FRONT);	glDrawBuffer(GL_BACK);   // copy from buffer
 	glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST); 	*/
 

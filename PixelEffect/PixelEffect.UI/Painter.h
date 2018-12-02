@@ -37,12 +37,21 @@ private:
 	GLuint customFramebuffer;
 
 	GLint positionAttribute;
+	
+	GLuint programShaderPainter;
+	GLuint programShaderVoronoi;
 
 	GLuint inputColorTexture;
+	GLuint inputSeedX;
+	GLuint inputSeedY;
 
 	GLuint inputColorTextureLocation;
+	GLuint inputSeedXLocation;
+	GLuint inputSeedYLocation;
+
 	GLint mousePositionLocation;
-	GLint painterScreenSizeLocation;
+	GLint panelSizeLocation;
+	GLuint stepSizeLocation;
 		
 	void initVBO();
 	void setUpPositionAttribute();
@@ -55,8 +64,9 @@ private:
 public:
    	
 	void setupInputColor(float* pixels, size_t width, size_t height);
-
-	void updateTexture(float* pixels, size_t width, size_t height, GLuint textureId);
+	
+	void makeVoronoi(Mat4f projectionViewMatrix);
+	void releaseVoronoi();
 		
 	void init();
 
