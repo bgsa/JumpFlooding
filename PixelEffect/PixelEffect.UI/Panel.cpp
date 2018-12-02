@@ -101,7 +101,7 @@ void Panel::init()
 					"outputSeedY.w = 1.0;																				\n"
 
 				"} else	{																								\n"
-					"outputColor = vec4( 0.0 );																			\n"
+					"outputColor = vec4( 1.0 );																			\n"
 					"outputSeedX = vec4( 0.0 );																			\n"
 					"outputSeedY = vec4( 0.0 );																			\n"
 				"}																										\n"
