@@ -33,13 +33,12 @@ private:
 			1.0f, 1.0f, //top-right	
 		}
 	};
-
-	GLuint customFramebuffer;
-
+	
 	GLint positionAttribute;
 	
 	GLuint programShaderPainter;
 	GLuint programShaderVoronoi;
+	GLuint programShaderMedialAxis;
 
 	GLuint inputColorTexture;
 	GLuint inputSeedX;
@@ -66,7 +65,6 @@ public:
 	void setupInputColor(float* pixels, size_t width, size_t height);
 	
 	void makeVoronoi(Mat4f projectionViewMatrix);
-	void releaseVoronoi();
 		
 	void init();
 

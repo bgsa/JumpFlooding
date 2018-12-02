@@ -87,12 +87,7 @@ void Painter::init()
 			"outputSeedY				   = vec4( 0.0 );															\n"
 
 			"if (stepSize != 0.0) {																					\n"
-
-				"bool isMedialAxis = false;																							\n"
-				"vec4 currentSeedCoordinateXAsColor = texture(inputSeedX, textureCoordinate);										\n"
-				"vec4 currentSeedCoordinateYAsColor = texture(inputSeedY, textureCoordinate);										\n"
-				"vec2 currentSeedCoordinate = vec2( DecodeFloat(currentSeedCoordinateXAsColor) , DecodeFloat(currentSeedCoordinateYAsColor) );	\n"
-
+		
 				"for (int x = -1; x <= 1; ++x) {																	\n"
 					"for (int y = -1; y <= 1; ++y) {																\n"
 
@@ -117,39 +112,11 @@ void Painter::init()
 							"outputSeedX			 = neighborSeedCoordinateXAsColor;									\n"
 							"outputSeedY			 = neighborSeedCoordinateYAsColor;									\n"
 							"nearestDistanceFromSeed = distanceFromNeighborSeed;										\n"
-							"isMedialAxis = false;																		\n"
-						"} else { \n"
-							//"if (abs(distanceFromNeighborSeed - nearestDistanceFromSeed) == 0.0 && nearestDistanceFromSeed != neighborSeedCoordinate) 									\n"
-							"if (abs(distanceFromNeighborSeed - nearestDistanceFromSeed) == 0.0 )	\n"
-								"isMedialAxis = true;																	\n"
-						"} \n"
-
-		/*
-						"if (distanceFromNeighborSeed < nearestDistanceFromSeed) {										\n"
-
-							"bool isMedialAxis = stepSize == 1.0 && abs(distanceFromNeighborSeed - nearestDistanceFromSeed) < 0.5; \n"
-
-							"if ( isMedialAxis ) {																			\n"
-								"outputColor			 = vec4( 0.0, 0.0, 0.0, 1.0 );										\n"
-								"outputSeedX			 = neighborSeedCoordinateXAsColor;									\n"
-								"outputSeedY			 = neighborSeedCoordinateYAsColor;									\n"
-								"nearestDistanceFromSeed = distanceFromNeighborSeed;										\n"
-							"} else { \n"
-								"outputColor			 = neighborColor;													\n"
-								"outputSeedX			 = neighborSeedCoordinateXAsColor;									\n"
-								"outputSeedY			 = neighborSeedCoordinateYAsColor;									\n"
-								"nearestDistanceFromSeed = distanceFromNeighborSeed;										\n"
-							"}\n"
-
-						"}\n"						
-						*/
+						"}\n"		
 
 					"} \n"
 				"} \n"
-
-				"if (stepSize == 1.0 && isMedialAxis) \n"
-					"outputColor			 = vec4( 1.0, 1.0, 1.0, 1.0 );										\n"
-
+		
 			"} else	{																									\n"
 				"bool isSeed = texture(inputColorTexture, textureCoordinate) != vec4(1.0);								\n"
 
@@ -170,17 +137,89 @@ void Painter::init()
 			"}																											\n"
 
 		"} \n";
+
+		string fragmentShaderMedialAxis = "#version 300 es \n"
+			"precision highp float;	\n"
+			"precision highp int;	\n"
+
+			"uniform sampler2D inputColorTexture; \n"
+			"uniform sampler2D inputSeedX; \n"
+			"uniform sampler2D inputSeedY; \n"
+
+			"uniform vec2 panelSize; \n"
+
+			"layout(location = 0) out vec4 outputColor; \n"
+
+			"float DecodeFloat(vec4 enc) \n"
+			"{ \n"
+				"vec4 kDecodeDot = vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 160581375.0); \n"
+				"return dot(enc, kDecodeDot); \n"
+			"} \n"
+
+			"void main() \n"
+			"{ \n"
+				"vec4 whiteColor             = vec4( 1.0, 1.0, 1.0, 1.0 );											\n"
+				"vec4 blackColor             = vec4( 0.0, 0.0, 0.0, 1.0 );											\n"
+				"vec4 silverColor            = vec4( 0.5, 0.5, 0.5, 1.0 );											\n"
+				"float medialThreshold       = 0.5;																	\n"
+				"float minimunMedialDistance = 1.001 * 5.0;															\n"
+				"vec2 pixelSize			     = 1.0 / panelSize.xy;													\n"
+				"vec2 textureCoordinate      = gl_FragCoord.xy / panelSize.xy;										\n"
+				"vec4 textureColor		     = texture(inputColorTexture, textureCoordinate);						\n"
+	
+				"outputColor = whiteColor;																		\n"
+			
+				"vec4 currentSeedCoordinateXAsColor = texture(inputSeedX, textureCoordinate);										\n"
+				"vec4 currentSeedCoordinateYAsColor = texture(inputSeedY, textureCoordinate);										\n"
+				"vec2 currentSeedCoordinate = vec2( DecodeFloat(currentSeedCoordinateXAsColor) , DecodeFloat(currentSeedCoordinateYAsColor) );	\n"
+
+				"vec2  currentPixelToSeed = currentSeedCoordinate - textureCoordinate; \n"
+				"float currentPixelToSeedLength = length(currentPixelToSeed); \n"
+				"bool  farEnough = currentPixelToSeedLength > length(pixelSize) * minimunMedialDistance; \n"
+				"bool  isSeed = currentPixelToSeedLength < 0.001; \n"
+
+				"if (isSeed) { \n"
+					"outputColor = textureColor; \n"
+				"} else { \n"
+					"currentPixelToSeed = currentPixelToSeed / currentPixelToSeedLength; \n"
+
+					"for (int x = -1; x <= 1; ++x) {																	\n"
+						"for (int y = -1; y <= 1; ++y) {																\n"
+
+							"vec2 neighborCoordinate =  textureCoordinate + (vec2(y,x) * pixelSize);			\n"
+							"vec4 neighborColor = texture(inputColorTexture, neighborCoordinate);						\n"
+
+							"bool outOfTextureRange = neighborCoordinate.x < 0.0 || neighborCoordinate.x > 1.0 || neighborCoordinate.y < 0.0  || neighborCoordinate.y > 1.0; \n"
+							"if ( outOfTextureRange )									\n"
+								"continue;												\n"
+
+							"vec4 neighborSeedCoordinateXAsColor = texture(inputSeedX, neighborCoordinate);										\n"
+							"vec4 neighborSeedCoordinateYAsColor = texture(inputSeedY, neighborCoordinate);										\n"
+							"vec2 neighborSeedCoordinate = vec2( DecodeFloat(neighborSeedCoordinateXAsColor) , DecodeFloat(neighborSeedCoordinateYAsColor) );	\n"
+
+							"vec2 currentPixelToNeighborSeed = normalize(textureCoordinate - neighborSeedCoordinate); \n"
+							"bool hasSameSeed = currentSeedCoordinate == neighborSeedCoordinate;"
+										
+							"if (hasSameSeed) \n"
+								"continue; \n"
+
+							"if (farEnough && dot(currentPixelToSeed , currentPixelToNeighborSeed) > medialThreshold) { \n"
+								"outputColor = silverColor; \n"
+							"} \n"
+
+						"} \n"
+					"} \n"
+
+				"} \n"
+
+			"} \n";
 				
 	programShaderPainter = Shader::loadShaderProgram(vertexShaderSource.c_str(), fragmentShaderSource.c_str());
 	programShaderVoronoi = Shader::loadShaderProgram(vertexShaderSource.c_str(), fragmentShaderVoronoi.c_str());
+	programShaderMedialAxis = Shader::loadShaderProgram(vertexShaderSource.c_str(), fragmentShaderMedialAxis.c_str());
 	programShader = programShaderPainter;
 
 	initVBO();
-}
-
-void Painter::releaseVoronoi()
-{
-	glDeleteFramebuffers(1, &customFramebuffer);
 }
 
 void Painter::copyFromBufferToTexture(GLuint framebuffer, GLenum buffer, GLuint texture, GLenum textureUnit, size_t width, size_t height, std::string filename)
@@ -331,10 +370,8 @@ void Painter::makeVoronoi(Mat4f projectionViewMatrix)
 
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-	// TODO: ao apertar enter, fazer o voronoi e caso um pixel conflitar com outro quando o stepCount == 1, entao esse pixel está no medial axis !!
-	
-	customFramebuffer = generateFramebuffer(width, height);
+		
+	GLuint customFramebuffer = generateFramebuffer(width, height);
 
 	stepSize = 0.0f;
 	render(projectionViewMatrix);
@@ -346,16 +383,27 @@ void Painter::makeVoronoi(Mat4f projectionViewMatrix)
 		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "seedX-" + std::to_string(contador));
 		copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "seedY-" + std::to_string(contador));
 
-		stepSize = powf(2, stepCount);
+		stepSize = powf(2.0f, float(stepCount));
 		render(projectionViewMatrix);
 
 		contador++;
 	}
 
 	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-final");
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT1, inputSeedX, GL_TEXTURE1, width, height, "seedX-final" + std::to_string(contador));
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT2, inputSeedY, GL_TEXTURE2, width, height, "seedY-final" + std::to_string(contador));
+
+	programShader = programShaderMedialAxis;
+	initVBO();
+
+	render(projectionViewMatrix);
+
+	copyFromBufferToTexture(customFramebuffer, GL_COLOR_ATTACHMENT0, inputColorTexture, GL_TEXTURE0, width, height, "color-final");
 
 	programShader = programShaderPainter;
 	initVBO();
+
+	glDeleteFramebuffers(1, &customFramebuffer);
 }
 
 void Painter::setUpPositionAttribute()
@@ -422,10 +470,7 @@ void Painter::render(Mat4f projectionViewMatrix)
 	
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	copyFromBufferToTexture(0, GL_BACK, inputColorTexture, GL_TEXTURE0, getWidth(), getHeight(), "background");
-
-
-	
+	copyFromBufferToTexture(0, GL_BACK, inputColorTexture, GL_TEXTURE0, (size_t) getWidth(), (size_t)getHeight(), "background");
 
 	Log::glErrors(__FILE__, __LINE__);
 }

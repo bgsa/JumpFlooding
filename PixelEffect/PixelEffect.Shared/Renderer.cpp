@@ -80,7 +80,6 @@ void Renderer::onKeyDown(int keyCode)
 	else 
 	{
 		painter->makeVoronoi(projectionViewMatrix);
-		painter->releaseVoronoi();
 	}
 }
 
